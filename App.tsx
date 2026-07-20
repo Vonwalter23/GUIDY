@@ -19,6 +19,9 @@ import {AppNavigator} from './src/navigation';
 // Import theme
 import {lightTheme, darkTheme} from './src/theme';
 
+// Import location provider
+import {LocationProvider} from './src/services/location';
+
 /**
  * Main App Component
  */
@@ -34,7 +37,9 @@ function App(): React.JSX.Element {
           barStyle={isDarkMode ? 'light-content' : 'dark-content'}
           backgroundColor={theme.colors.background}
         />
-        <AppNavigator />
+        <LocationProvider>
+          <AppNavigator />
+        </LocationProvider>
       </PaperProvider>
     </SafeAreaProvider>
   );

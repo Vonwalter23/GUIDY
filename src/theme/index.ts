@@ -8,7 +8,7 @@ import type {MD3Theme} from 'react-native-paper';
 import {colors} from './colors';
 import {spacing} from './spacing';
 import {typography} from './typography';
-import {radius, componentRadius} from './radius';
+import {radius, componentRadius, borderRadius} from './radius';
 
 const fontConfig = {
   fontFamily: 'System',
@@ -110,5 +110,6 @@ export const darkTheme: MD3Theme = {
   },
 };
 
-export {colors, spacing, typography, radius, componentRadius};
-export default {lightTheme, darkTheme, colors, spacing, typography, radius, componentRadius};
+// Re-export design tokens
+export {colors, spacing, typography, radius, componentRadius, borderRadius};
+export default {lightTheme, darkTheme, colors, spacing, typography, radius, componentRadius, borderRadius};

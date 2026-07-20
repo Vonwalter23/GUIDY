@@ -14,6 +14,9 @@ export const radius = {
   full: 9999,
 } as const;
 
+// Alias for borderRadius (common name)
+export const borderRadius = radius;
+
 // Component-specific radii
 export const componentRadius = {
   button: 12,
