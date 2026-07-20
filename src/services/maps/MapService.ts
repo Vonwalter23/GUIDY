@@ -214,7 +214,7 @@ class MapService {
   /**
    * Animate to region
    */
-  animateToRegion(region: MapRegion, animated: boolean = true): MapRegion {
+  animateToRegion(region: MapRegion, _animated: boolean = true): MapRegion {
     this.currentRegion = normalizeRegion(region);
     return this.currentRegion;
   }

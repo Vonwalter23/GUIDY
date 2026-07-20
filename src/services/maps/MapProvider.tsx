@@ -58,7 +58,7 @@ export function MapProvider({
   // Local state
   const [region, setRegionState] = useState<MapRegion>(DEFAULT_REGION);
   const [isReady, setIsReady] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mapType, setMapTypeState] = useState<'standard' | 'satellite' | 'hybrid'>(
     DEFAULT_MAP_STYLE.mapType as 'standard' | 'satellite' | 'hybrid',
@@ -221,10 +221,10 @@ export function MapProvider({
       zoomOut,
       resetToDefault,
     }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       region,
       isReady,
-      isLoading,
       error,
       mapType,
       isFollowingUser,

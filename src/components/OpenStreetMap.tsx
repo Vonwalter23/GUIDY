@@ -7,10 +7,9 @@
  */
 
 import React, {useRef, useEffect, useCallback, useState} from 'react';
-import {StyleSheet, View, Platform} from 'react-native';
+import {StyleSheet, View} from 'react-native';
 import {WebView} from 'react-native-webview';
 import {useMap} from '../services/maps';
-import {MARKER_COLORS} from '../services/maps/MapConstants';
 
 interface OpenStreetMapProps {
   style?: object;
@@ -135,7 +134,7 @@ const MAP_HTML = `
  */
 export function OpenStreetMap({
   style,
-  followsUserLocation = true,
+  followsUserLocation: _followsUserLocation = true,
   onRegionChange,
   onRegionChangeComplete,
   onPress,

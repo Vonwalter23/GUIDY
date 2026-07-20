@@ -7,7 +7,6 @@ import type {MapCoordinate, MapRegion} from './MapTypes';
 import {
   REGION_DELTAS,
   ZOOM_LEVELS,
-  DEFAULT_REGION,
   ARGENTINA_BOUNDS,
 } from './MapConstants';
 

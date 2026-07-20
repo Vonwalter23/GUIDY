@@ -36,7 +36,6 @@ function RecorridoScreen({}: Props): React.JSX.Element {
     gpsStatus,
     isTracking,
     error,
-    lastUpdate,
     requestPermission,
     startTracking,
     stopTracking,
