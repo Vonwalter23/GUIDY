@@ -19,8 +19,16 @@ import {getGpsStatus} from './LocationUtils';
 import {useLocationStore} from './useLocationStore';
 import {createMovementDetector} from './MovementDetector';
 
-// Debug logging flag - set to false in production
+// Debug logging flag - MUST remain true until STAGE 4
 const DEBUG_GPS = true;
+
+/**
+ * Get current timestamp for logging
+ */
+const getTimestamp = (): string => {
+  const now = new Date();
+  return now.toISOString();
+};
 
  /**
  * Location Provider Props
@@ -95,32 +103,64 @@ export function LocationProvider({
   const handleLocationUpdate = useCallback(
     (location: LocationData) => {
       if (DEBUG_GPS) {
-        console.log('[GPS Provider] Location update:', {
+        console.log(`[GPS Provider ${getTimestamp()}] ==============================`);
+        console.log(`[GPS Provider ${getTimestamp()}] handleLocationUpdate() CALLED`);
+        console.log(`[GPS Provider ${getTimestamp()}] Location received:`, {
           lat: location.latitude.toFixed(6),
           lng: location.longitude.toFixed(6),
+          accuracy: location.accuracy,
+          speed: location.speed,
+          heading: location.heading,
+          timestamp: location.timestamp,
         });
+        console.log(`[GPS Provider ${getTimestamp()}] Store state before update:`);
+        console.log(`[GPS Provider ${getTimestamp()}]   currentLocation: ${store.currentLocation ? 'EXISTS' : 'NULL'}`);
+        console.log(`[GPS Provider ${getTimestamp()}]   gpsStatus: ${store.gpsStatus}`);
+        console.log(`[GPS Provider ${getTimestamp()}]   isTracking: ${store.isTracking}`);
+        console.log(`[GPS Provider ${getTimestamp()}]   error: ${store.error ? JSON.stringify(store.error) : 'NULL'}`);
       }
 
       // Update previous location
       if (store.currentLocation) {
+        if (DEBUG_GPS) {
+          console.log(`[GPS Provider ${getTimestamp()}] Storing previous location`);
+        }
         store.setPreviousLocation(store.currentLocation);
       }
 
       // Update current location
       store.setCurrentLocation(location);
+      
+      if (DEBUG_GPS) {
+        console.log(`[GPS Provider ${getTimestamp()}] Updated store.currentLocation`);
+      }
 
       // Update GPS status to active
-      store.setGpsStatus(getGpsStatus(location));
+      const newGpsStatus = getGpsStatus(location);
+      store.setGpsStatus(newGpsStatus);
+      
+      if (DEBUG_GPS) {
+        console.log(`[GPS Provider ${getTimestamp()}] Updated store.gpsStatus: ${newGpsStatus}`);
+      }
 
       // Update movement state
       const movementState = movementDetectorRef.current.update(location);
       if (movementState.isMoving !== store.isTracking) {
+        if (DEBUG_GPS) {
+          console.log(`[GPS Provider ${getTimestamp()}] Updating isTracking: ${movementState.isMoving}`);
+        }
         store.setIsTracking(movementState.isMoving);
       }
 
       // Clear error and update timestamp
       store.setError(null);
-      store.setLastUpdate(Date.now());
+      const now = Date.now();
+      store.setLastUpdate(now);
+      
+      if (DEBUG_GPS) {
+        console.log(`[GPS Provider ${getTimestamp()}] Cleared error, set lastUpdate: ${now}`);
+        console.log(`[GPS Provider ${getTimestamp()}] ==============================`);
+      }
     },
     [store],
   );
@@ -129,7 +169,9 @@ export function LocationProvider({
   const handleLocationError = useCallback(
     (error: {code: string; message: string}) => {
       if (DEBUG_GPS) {
-        console.log('[GPS Provider] Location error:', error);
+        console.log(`[GPS Provider ${getTimestamp()}] ==============================`);
+        console.log(`[GPS Provider ${getTimestamp()}] handleLocationError() CALLED`);
+        console.log(`[GPS Provider ${getTimestamp()}] Error:`, JSON.stringify(error));
       }
 
       const locationError = {
@@ -139,8 +181,19 @@ export function LocationProvider({
       store.setError(locationError);
       store.setGpsStatus('unavailable');
       
+      if (DEBUG_GPS) {
+        console.log(`[GPS Provider ${getTimestamp()}] Updated store.gpsStatus: 'unavailable'`);
+      }
+      
       if (error.code === LocationErrorCode.PERMISSION_DENIED) {
         store.setPermissionStatus('denied');
+        if (DEBUG_GPS) {
+          console.log(`[GPS Provider ${getTimestamp()}] Updated store.permissionStatus: 'denied'`);
+        }
+      }
+      
+      if (DEBUG_GPS) {
+        console.log(`[GPS Provider ${getTimestamp()}] ==============================`);
       }
     },
     [store],
@@ -148,15 +201,25 @@ export function LocationProvider({
 
   // Start tracking
   const startTracking = useCallback(() => {
+    if (DEBUG_GPS) {
+      console.log(`[GPS Provider ${getTimestamp()}] ==============================`);
+      console.log(`[GPS Provider ${getTimestamp()}] startTracking() CALLED`);
+      console.log(`[GPS Provider ${getTimestamp()}] Current store state:`);
+      console.log(`[GPS Provider ${getTimestamp()}]   isTracking: ${store.isTracking}`);
+      console.log(`[GPS Provider ${getTimestamp()}]   permissionStatus: ${store.permissionStatus}`);
+      console.log(`[GPS Provider ${getTimestamp()}]   gpsStatus: ${store.gpsStatus}`);
+    }
+
     if (store.isTracking) {
       if (DEBUG_GPS) {
-        console.log('[GPS Provider] Already tracking');
+        console.log(`[GPS Provider ${getTimestamp()}] Already tracking, returning early`);
+        console.log(`[GPS Provider ${getTimestamp()}] ==============================`);
       }
       return;
     }
 
     if (DEBUG_GPS) {
-      console.log('[GPS Provider] Starting tracking');
+      console.log(`[GPS Provider ${getTimestamp()}] Setting tracking state...`);
     }
 
     // Set tracking state
@@ -165,10 +228,22 @@ export function LocationProvider({
     // Set GPS status to searching while we get first fix
     store.setGpsStatus('searching');
     
+    if (DEBUG_GPS) {
+      console.log(`[GPS Provider ${getTimestamp()}] Set store.gpsStatus: 'searching'`);
+    }
+    
     // Clear any previous errors
     store.setError(null);
+    if (DEBUG_GPS) {
+      console.log(`[GPS Provider ${getTimestamp()}] Cleared previous errors`);
+    }
 
     // Start continuous location updates
+    if (DEBUG_GPS) {
+      console.log(`[GPS Provider ${getTimestamp()}] Calling locationService.startLocationUpdates()`);
+      console.log(`[GPS Provider ${getTimestamp()}] Options:`, {enableHighAccuracy, distanceFilter, interval});
+    }
+    
     locationService.startLocationUpdates(
       handleLocationUpdate,
       handleLocationError,
@@ -177,42 +252,56 @@ export function LocationProvider({
 
     // Also request immediate location for faster first fix
     if (DEBUG_GPS) {
-      console.log('[GPS Provider] Requesting immediate location');
+      console.log(`[GPS Provider ${getTimestamp()}] Calling locationService.getCurrentLocation() for immediate fix`);
     }
     
     locationService.getCurrentLocation({enableHighAccuracy})
       .then(handleLocationUpdate)
       .catch((error) => {
         if (DEBUG_GPS) {
-          console.log('[GPS Provider] Immediate location failed:', error);
+          console.log(`[GPS Provider ${getTimestamp()}] Immediate location failed:`, JSON.stringify(error));
+          console.log(`[GPS Provider ${getTimestamp()}] WatchPosition should still provide location...`);
         }
         // Don't call handleLocationError here - let watchPosition handle it
-        // The error will be shown if both methods fail
       });
+      
+    if (DEBUG_GPS) {
+      console.log(`[GPS Provider ${getTimestamp()}] ==============================`);
+    }
   }, [store, handleLocationUpdate, handleLocationError, enableHighAccuracy, distanceFilter, interval]);
 
   // Stop tracking
   const stopTracking = useCallback(() => {
     if (DEBUG_GPS) {
-      console.log('[GPS Provider] Stopping tracking');
+      console.log(`[GPS Provider ${getTimestamp()}] ==============================`);
+      console.log(`[GPS Provider ${getTimestamp()}] stopTracking() CALLED`);
     }
     
     locationService.stopLocationUpdates();
     store.setIsTracking(false);
     store.setGpsStatus('inactive');
+    
+    if (DEBUG_GPS) {
+      console.log(`[GPS Provider ${getTimestamp()}] Set store.isTracking: false`);
+      console.log(`[GPS Provider ${getTimestamp()}] Set store.gpsStatus: 'inactive'`);
+      console.log(`[GPS Provider ${getTimestamp()}] ==============================`);
+    }
   }, [store]);
 
   // Request permission
   const requestPermission = useCallback(async () => {
     if (DEBUG_GPS) {
-      console.log('[GPS Provider] Requesting permission');
+      console.log(`[GPS Provider ${getTimestamp()}] ==============================`);
+      console.log(`[GPS Provider ${getTimestamp()}] requestPermission() CALLED`);
     }
     
     const result = await requestLocationPermission();
     store.setPermissionStatus(result.status);
     
     if (DEBUG_GPS) {
-      console.log('[GPS Provider] Permission result:', result.status);
+      console.log(`[GPS Provider ${getTimestamp()}] Permission result:`, JSON.stringify(result));
+      console.log(`[GPS Provider ${getTimestamp()}] Updated store.permissionStatus: ${result.status}`);
+      console.log(`[GPS Provider ${getTimestamp()}] ==============================`);
     }
     
     return {
@@ -224,10 +313,15 @@ export function LocationProvider({
   // Refresh location once
   const refreshLocation = useCallback(async () => {
     if (DEBUG_GPS) {
-      console.log('[GPS Provider] Refreshing location');
+      console.log(`[GPS Provider ${getTimestamp()}] ==============================`);
+      console.log(`[GPS Provider ${getTimestamp()}] refreshLocation() CALLED`);
     }
     
     store.setGpsStatus('searching');
+    
+    if (DEBUG_GPS) {
+      console.log(`[GPS Provider ${getTimestamp()}] Set store.gpsStatus: 'searching'`);
+    }
     
     try {
       const location = await locationService.getCurrentLocation({enableHighAccuracy});
@@ -239,19 +333,26 @@ export function LocationProvider({
         message: err.message || 'Error desconocido',
       });
     }
+    
+    if (DEBUG_GPS) {
+      console.log(`[GPS Provider ${getTimestamp()}] ==============================`);
+    }
   }, [store, handleLocationUpdate, handleLocationError, enableHighAccuracy]);
 
   // Check permission on mount
   useEffect(() => {
     const checkPermission = async () => {
       if (DEBUG_GPS) {
-        console.log('[GPS Provider] Checking permission on mount');
+        console.log(`[GPS Provider ${getTimestamp()}] ==============================`);
+        console.log(`[GPS Provider ${getTimestamp()}] checkPermission() on mount CALLED`);
       }
       const status = await getPermissionStatus();
       store.setPermissionStatus(status);
       
       if (DEBUG_GPS) {
-        console.log('[GPS Provider] Initial permission status:', status);
+        console.log(`[GPS Provider ${getTimestamp()}] Initial permission status: ${status}`);
+        console.log(`[GPS Provider ${getTimestamp()}] Updated store.permissionStatus: ${status}`);
+        console.log(`[GPS Provider ${getTimestamp()}] ==============================`);
       }
     };
     checkPermission();
@@ -261,12 +362,12 @@ export function LocationProvider({
   useEffect(() => {
     if (appState === 'active' && store.permissionStatus === 'granted') {
       if (DEBUG_GPS) {
-        console.log('[GPS Provider] App became active, permission granted');
+        console.log(`[GPS Provider ${getTimestamp()}] App state: 'active', permission: 'granted'`);
       }
       // Could refresh location here if needed
     } else if (appState === 'background') {
       if (DEBUG_GPS) {
-        console.log('[GPS Provider] App went to background');
+        console.log(`[GPS Provider ${getTimestamp()}] App state: 'background'`);
       }
       // Continue tracking if needed
     }
@@ -277,12 +378,16 @@ export function LocationProvider({
     const detector = movementDetectorRef.current;
     return () => {
       if (DEBUG_GPS) {
-        console.log('[GPS Provider] Cleanup on unmount');
+        console.log(`[GPS Provider ${getTimestamp()}] ==============================`);
+        console.log(`[GPS Provider ${getTimestamp()}] Cleanup on unmount`);
       }
       // Stop location tracking
       locationService.stopLocationUpdates();
       if (detector) {
         detector.reset();
+      }
+      if (DEBUG_GPS) {
+        console.log(`[GPS Provider ${getTimestamp()}] ==============================`);
       }
     };
   }, []);
