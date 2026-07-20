@@ -1,6 +1,6 @@
 /**
  * GUIDY - Configuration Screen
- * Placeholder screen with interest categories
+ * Screen with interest categories for POI filtering
  */
 
 import React from 'react';
@@ -19,13 +19,14 @@ type RootStackParamList = {
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Configuracion'>;
 
+// Interest categories for POI filtering
+// Ready for future expansion
 const interests = [
-  {icon: 'castle', title: 'Historia'},
-  {icon: 'office-building', title: 'Arquitectura'},
   {icon: 'palette', title: 'Cultura'},
   {icon: 'food', title: 'Gastronomía'},
-  {icon: 'lightbulb-outline', title: 'Curiosidades'},
-  {icon: 'store', title: 'Servicios cercanos'},
+  {icon: 'castle', title: 'Historia y Arquitectura'},
+  {icon: 'tree', title: 'Naturaleza'},
+  {icon: 'store', title: 'Servicios Cercanos'},
 ];
 
 function ConfiguracionScreen({}: Props): React.JSX.Element {

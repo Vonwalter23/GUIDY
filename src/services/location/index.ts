@@ -14,6 +14,7 @@ export {
   openAppSettings,
   showPermissionRationale,
   showPermissionDeniedAlert,
+  handlePermissionResult,
 } from './LocationPermissions';
 
 // Utilities

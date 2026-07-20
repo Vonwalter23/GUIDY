@@ -146,6 +146,7 @@ class LocationService {
           return;
         }
 
+        // @react-native-community/geolocation uses distanceFilter instead of interval
         this.watchId = Geolocation.watchPosition(
           (position: GeolocationResponse) => {
             const location = toLocationData(position);
@@ -158,10 +159,8 @@ class LocationService {
             onError(toLocationError(error));
           },
           {
-            enableHighAccuracy: mergedOptions.enableHighAccuracy,
-            distanceFilter: mergedOptions.distanceFilter,
-            interval: mergedOptions.interval,
-            fastestInterval: mergedOptions.fastestInterval,
+            enableHighAccuracy: mergedOptions.enableHighAccuracy ?? true,
+            distanceFilter: mergedOptions.distanceFilter ?? 0,
           },
         );
 

@@ -9,6 +9,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [STAGE 3.1] - 2026-07-17
+
+### Added
+- Android location permissions to AndroidManifest.xml:
+  - ACCESS_FINE_LOCATION
+  - ACCESS_COARSE_LOCATION
+- Permission flow handling:
+  - Permission granted: GPS tracking starts automatically
+  - Permission denied: User can retry
+  - Permission blocked: Opens app Settings
+- Comprehensive test suite for LocationPermissions:
+  - Permission granted/denied/blocked tests
+  - Error handling tests
+  - Settings opening tests
+- Documentation:
+  - `docs/LOCATION_ENGINE.md` - Complete location engine documentation
+  - Permission flow documentation
+
+### Changed
+- Updated RecorridoScreen with improved permission UX:
+  - Clear permission denied message
+  - Permission blocked screen with lock icon
+  - Automatic GPS tracking on permission grant
+  - Additional info: speed and last update time
+- Updated ConfiguracionScreen categories:
+  - Cultura
+  - Gastronomía
+  - Historia y Arquitectura
+  - Naturaleza
+  - Servicios Cercanos
+- Updated LocationPermissions.ts:
+  - Better Android version compatibility
+  - NEVER_ASK_AGAIN detection
+  - Improved error handling
+
+### Fixed
+- Permission request callback not working
+- GPS tracking not starting after permission grant
+- TypeScript errors in permission handling
+- LocationService geolocation options
+
+---
+
 ## [STAGE 3] - 2026-07-17
 
 ### Added

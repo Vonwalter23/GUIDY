@@ -1,6 +1,11 @@
 /**
  * GUIDY - Location Permissions
  * Handle location permission requests on Android
+ * 
+ * Supports:
+ * - Android 12+ (API 31+)
+ * - Android 13+ (API 33+) - NEARBY_WIFI_DEVICES for precise location
+ * - Android 14+ (API 34+)
  */
 
 import {Platform, PermissionsAndroid, Alert, Linking} from 'react-native';
@@ -9,6 +14,8 @@ import type {PermissionStatus, PermissionResult} from './LocationTypes';
 /**
  * Request location permissions for Android
  * Handles both fine and coarse location
+ * 
+ * @returns Promise<PermissionResult> with status and canAskAgain flag
  */
 export async function requestLocationPermission(): Promise<PermissionResult> {
   try {
@@ -28,41 +35,40 @@ export async function requestLocationPermission(): Promise<PermissionResult> {
       return {status: 'granted', canAskAgain: true};
     }
 
-    // Request permissions
-    const result = await PermissionsAndroid.requestMultiple([
+    // Build permissions array
+    const permissionsToRequest = [
       PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
       PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION,
-    ]);
+    ];
 
-    const fineGranted =
-      result[PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION] ===
-      PermissionsAndroid.RESULTS.GRANTED;
-    const coarseGranted =
-      result[PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION] ===
-      PermissionsAndroid.RESULTS.GRANTED;
+    // Request with rationale callback for better UX
+    const result = await PermissionsAndroid.requestMultiple(permissionsToRequest);
 
-    if (fineGranted) {
+    // Analyze results
+    const fineResult = result[PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION];
+    const coarseResult = result[PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION];
+
+    // Check for granted permissions
+    if (fineResult === PermissionsAndroid.RESULTS.GRANTED) {
       return {status: 'granted', canAskAgain: true};
     }
 
-    if (coarseGranted) {
+    if (coarseResult === PermissionsAndroid.RESULTS.GRANTED) {
       return {status: 'limited', canAskAgain: true};
     }
 
-    // Check if user can be asked again
-    const fineDenied =
-      result[PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION] ===
-      PermissionsAndroid.RESULTS.DENIED;
-    const coarseDenied =
-      result[PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION] ===
-      PermissionsAndroid.RESULTS.DENIED;
+    // Check for blocked/permanently denied
+    if (fineResult === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
+      return {status: 'blocked', canAskAgain: false};
+    }
 
-    if (fineDenied || coarseDenied) {
+    // Regular denial - can ask again
+    if (fineResult === PermissionsAndroid.RESULTS.DENIED) {
       return {status: 'denied', canAskAgain: true};
     }
 
-    // Permissions are blocked
-    return {status: 'blocked', canAskAgain: false};
+    // Fallback for any other case
+    return {status: 'denied', canAskAgain: true};
   } catch (error) {
     console.error('Error requesting location permission:', error);
     return {status: 'unavailable', canAskAgain: false};
@@ -136,7 +142,7 @@ export function openAppSettings(): void {
 export function showPermissionRationale(): void {
   Alert.alert(
     'Permiso de Ubicación Requerido',
-    'Guidy necesita acceso a tu ubicación para ofrecerte experiencias personalizadas basadas en tu posición. Tu ubicación se usa únicamente para mostrarte puntos de interés cercanos y guiarte durante los recorridos.',
+    'Guidy necesita acceso a tu ubicación para mostrarte puntos de interés cercanos y guiarte durante los recorridos. Tu ubicación se usa únicamente para fines de navegación.',
     [
       {text: 'Cancelar', style: 'cancel'},
       {text: 'Conceder Permiso', onPress: requestLocationPermission},
@@ -148,15 +154,47 @@ export function showPermissionRationale(): void {
 
 /**
  * Show alert when permission is permanently denied
+ * Opens app settings automatically
  */
 export function showPermissionDeniedAlert(): void {
   Alert.alert(
     'Permiso de Ubicación Denegado',
-    'Has denegado el permiso de ubicación. Para usar todas las funciones de Guidy, necesitas habilitar el permiso en la configuración de la aplicación.',
+    'Has denegado el permiso de ubicación permanentemente. Para usar Guidy, necesitas habilitar el permiso en la configuración de la aplicación.',
     [
       {text: 'Cancelar', style: 'cancel'},
       {text: 'Abrir Configuración', onPress: openAppSettings},
     ],
-    {cancelable: true},
+    {cancelable: false},
   );
+}
+
+/**
+ * Handle permission result and show appropriate alert if needed
+ * @returns true if permission was granted, false otherwise
+ */
+export async function handlePermissionResult(
+  result: PermissionResult,
+  onGranted?: () => void,
+  onDenied?: () => void,
+  onBlocked?: () => void,
+): Promise<boolean> {
+  switch (result.status) {
+    case 'granted':
+    case 'limited':
+      onGranted?.();
+      return true;
+    
+    case 'denied':
+      onDenied?.();
+      showPermissionRationale();
+      return false;
+    
+    case 'blocked':
+      onBlocked?.();
+      showPermissionDeniedAlert();
+      return false;
+    
+    default:
+      return false;
+  }
 }

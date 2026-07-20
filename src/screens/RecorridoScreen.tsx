@@ -1,9 +1,15 @@
 /**
  * GUIDY - Recorrido Screen
  * Screen showing map and GPS location information
+ * 
+ * Handles:
+ * - Permission request flow
+ * - GPS status display
+ * - Location coordinates display
+ * - Permission denied/blocked states
  */
 
-import React, {useEffect} from 'react';
+import React, {useEffect, useCallback} from 'react';
 import {View, StyleSheet, Dimensions} from 'react-native';
 import {Text, Surface, useTheme, Button, FAB} from 'react-native-paper';
 import {SafeAreaView} from 'react-native-safe-area-context';
@@ -16,6 +22,10 @@ import {
   formatLatitude,
   formatLongitude,
   formatAccuracy,
+  formatSpeed,
+  formatLastUpdate,
+  openAppSettings,
+  requestLocationPermission,
 } from '../services/location';
 import {OpenStreetMap} from '../components';
 import {useMap} from '../services/maps';
@@ -36,7 +46,7 @@ function RecorridoScreen({}: Props): React.JSX.Element {
     gpsStatus,
     isTracking,
     error,
-    requestPermission,
+    lastUpdate,
     startTracking,
     stopTracking,
   } = useLocation();
@@ -56,6 +66,19 @@ function RecorridoScreen({}: Props): React.JSX.Element {
       startTracking();
     }
   }, [permissionStatus, isTracking, startTracking]);
+
+  // Handle permission request with better UX
+  const handlePermissionRequest = useCallback(async () => {
+    const result = await requestLocationPermission();
+    if (result.status === 'denied') {
+      // Show rationale - user can try again
+      console.log('Permission denied, user can try again');
+    } else if (result.status === 'blocked') {
+      // Open settings for permanent denial
+      openAppSettings();
+    }
+    // Permission granted will trigger useEffect to start tracking
+  }, []);
 
   const getGpsStatusColor = () => {
     switch (gpsStatus) {
@@ -100,8 +123,97 @@ function RecorridoScreen({}: Props): React.JSX.Element {
     }
   };
 
-  // Permission request screen
-  if (permissionStatus !== 'granted') {
+  const getPermissionIcon = () => {
+    switch (permissionStatus) {
+      case 'granted':
+      case 'limited':
+        return 'check-circle';
+      case 'denied':
+        return 'close-circle';
+      case 'blocked':
+        return 'cancel';
+      default:
+        return 'help-circle';
+    }
+  };
+
+  // Permission denied screen
+  if (permissionStatus === 'denied') {
+    return (
+      <SafeAreaView
+        style={[styles.container, {backgroundColor: theme.colors.background}]}
+        edges={['bottom']}>
+        <View style={styles.permissionContainer}>
+          <Surface
+            style={[styles.permissionCard, {backgroundColor: theme.colors.surfaceVariant}]}
+            elevation={1}>
+            <Icon name="map-marker-off" size={64} color={theme.colors.error} />
+            <Text
+              variant="headlineSmall"
+              style={[styles.permissionTitle, {color: theme.colors.onSurface}]}>
+              Permiso de Ubicación
+            </Text>
+            <Text
+              variant="bodyMedium"
+              style={[styles.permissionDescription, {color: theme.colors.onSurfaceVariant}]}>
+              Has rechazado el permiso de ubicación. Guidy necesita acceso a tu ubicación para funcionar correctamente.
+            </Text>
+            <Button
+              mode="contained"
+              onPress={handlePermissionRequest}
+              style={styles.permissionButton}
+              icon="map-marker">
+              Conceder Permiso
+            </Button>
+            <Button
+              mode="outlined"
+              onPress={openAppSettings}
+              style={styles.settingsButton}
+              icon="cog">
+              Abrir Configuración
+            </Button>
+          </Surface>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Permission blocked (permanently denied) screen
+  if (permissionStatus === 'blocked') {
+    return (
+      <SafeAreaView
+        style={[styles.container, {backgroundColor: theme.colors.background}]}
+        edges={['bottom']}>
+        <View style={styles.permissionContainer}>
+          <Surface
+            style={[styles.permissionCard, {backgroundColor: theme.colors.surfaceVariant}]}
+            elevation={1}>
+            <Icon name="lock" size={64} color={theme.colors.error} />
+            <Text
+              variant="headlineSmall"
+              style={[styles.permissionTitle, {color: theme.colors.onSurface}]}>
+              Permiso Bloqueado
+            </Text>
+            <Text
+              variant="bodyMedium"
+              style={[styles.permissionDescription, {color: theme.colors.onSurfaceVariant}]}>
+              Has marcado "No volver a preguntar". Para usar Guidy, necesitas habilitar el permiso de ubicación en la configuración de la aplicación.
+            </Text>
+            <Button
+              mode="contained"
+              onPress={openAppSettings}
+              style={styles.permissionButton}
+              icon="cog">
+              Abrir Configuración
+            </Button>
+          </Surface>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Initial loading state
+  if (permissionStatus !== 'granted' && permissionStatus !== 'limited') {
     return (
       <SafeAreaView
         style={[styles.container, {backgroundColor: theme.colors.background}]}
@@ -119,12 +231,11 @@ function RecorridoScreen({}: Props): React.JSX.Element {
             <Text
               variant="bodyMedium"
               style={[styles.permissionDescription, {color: theme.colors.onSurfaceVariant}]}>
-              Guidy necesita acceso a tu ubicación para mostrarte puntos de interés cercanos y
-              guiarte durante los recorridos.
+              Guidy necesita acceso a tu ubicación para mostrarte puntos de interés cercanos y guiarte durante los recorridos.
             </Text>
             <Button
               mode="contained"
-              onPress={requestPermission}
+              onPress={handlePermissionRequest}
               style={styles.permissionButton}
               icon="map-marker">
               Conceder Permiso
@@ -178,11 +289,18 @@ function RecorridoScreen({}: Props): React.JSX.Element {
               style={{color: getGpsStatusColor()}}>
               {getGpsStatusText()}
             </Text>
-            <Text
-              variant="bodySmall"
-              style={{color: theme.colors.onPrimaryContainer}}>
-              {getPermissionText()}
-            </Text>
+            <View style={styles.statusRow}>
+              <Icon
+                name={getPermissionIcon()}
+                size={14}
+                color={theme.colors.onPrimaryContainer}
+              />
+              <Text
+                variant="bodySmall"
+                style={{color: theme.colors.onPrimaryContainer, marginLeft: 4}}>
+                {getPermissionText()}
+              </Text>
+            </View>
           </View>
           <View
             style={[
@@ -223,6 +341,22 @@ function RecorridoScreen({}: Props): React.JSX.Element {
               variant="titleMedium" 
               style={{color: currentLocation ? getAccuracyLevelColor(currentLocation.accuracy) : theme.colors.onSurface}}>
               {currentLocation ? formatAccuracy(currentLocation.accuracy) : 'N/A'}
+            </Text>
+          </View>
+        </View>
+
+        {/* Additional Info Row */}
+        <View style={styles.additionalInfoRow}>
+          <View style={styles.additionalInfoItem}>
+            <Icon name="speedometer" size={16} color={theme.colors.secondary} />
+            <Text variant="bodySmall" style={{color: theme.colors.onSurfaceVariant, marginLeft: 4}}>
+              {currentLocation ? formatSpeed(currentLocation.speed ?? null) : 'N/A'}
+            </Text>
+          </View>
+          <View style={styles.additionalInfoItem}>
+            <Icon name="clock-outline" size={16} color={theme.colors.secondary} />
+            <Text variant="bodySmall" style={{color: theme.colors.onSurfaceVariant, marginLeft: 4}}>
+              {lastUpdate ? formatLastUpdate(lastUpdate) : 'N/A'}
             </Text>
           </View>
         </View>
@@ -309,6 +443,9 @@ const styles = StyleSheet.create({
   permissionButton: {
     marginTop: spacing.md,
   },
+  settingsButton: {
+    marginTop: spacing.sm,
+  },
   gpsStatusCard: {
     marginHorizontal: spacing.md,
     marginTop: spacing.md,
@@ -328,6 +465,11 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
   },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
   coordinatesCard: {
     marginHorizontal: spacing.md,
     marginTop: spacing.sm,
@@ -341,6 +483,18 @@ const styles = StyleSheet.create({
   coordItem: {
     alignItems: 'center',
     gap: 2,
+  },
+  additionalInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+  },
+  additionalInfoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   errorCard: {
     marginHorizontal: spacing.md,
