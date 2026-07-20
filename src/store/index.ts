@@ -121,7 +121,7 @@ const initialState: AppState = {
 /**
  * Global Application Store
  */
-export const useAppStore = create<AppState & AppActions>((set, get) => ({
+export const useAppStore = create<AppState & AppActions>((set, _get) => ({
   // Initial State
   ...initialState,
 

@@ -1,1 +1,6 @@
-// Components will be added as needed
+/**
+ * GUIDY - Components
+ * Export all reusable components
+ */
+
+export {default as Logo} from './Logo';
