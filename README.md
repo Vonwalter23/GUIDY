@@ -27,18 +27,32 @@
 
 ## 📱 Current Status
 
-### Stage 0: Architecture Foundation ✅
+### Stage 1.5: Hardening + Branding ✅
 
 | Feature | Status |
 |---------|--------|
 | Project Setup | ✅ Complete |
 | TypeScript | ✅ Configured |
-| Navigation | 🔄 Pending |
-| State Management | 🔄 Pending |
-| GPS | 🔄 Pending |
-| Maps | 🔄 Pending |
-| POI System | 🔄 Pending |
-| Voice (TTS) | 🔄 Pending |
+| Navigation | ✅ Complete |
+| State Management | ✅ Complete |
+| Design System | ✅ Complete |
+| Brand Assets | ✅ Complete |
+| Launcher Icons | ✅ Complete |
+| Splash Screen | ✅ Complete |
+| Release Signing | ✅ Complete |
+
+### Stage 1: Base Interface ✅
+
+| Feature | Status |
+|---------|--------|
+| Splash Screen | ✅ Complete |
+| Home Screen | ✅ Complete |
+| Configuracion Screen | ✅ Complete |
+| Recorrido Screen | ✅ Complete |
+| React Navigation | ✅ Complete |
+| Theme System | ✅ Complete |
+
+### Roadmap
 
 **Roadmap**: [STAGE_PLAN.md](./docs/STAGE_PLAN.md)
 
@@ -115,6 +129,7 @@ APK location: `android/app/build/outputs/apk/debug/app-debug.apk`
 | [ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Technical architecture |
 | [STAGE_PLAN.md](./docs/STAGE_PLAN.md) | Development roadmap |
 | [CHANGELOG.md](./docs/CHANGELOG.md) | Version history |
+| [BRANDING.md](./docs/BRANDING.md) | Brand guidelines and design tokens |
 
 ---
 

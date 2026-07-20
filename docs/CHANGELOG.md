@@ -7,9 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [STAGE 1.5] - 2025-07-20
+
 ### Added
-- Project architecture documentation
-- Initial documentation structure
+- Design System complete:
+  - `src/theme/colors.ts` - Brand colors as Design Tokens
+  - `src/theme/spacing.ts` - Spacing scale
+  - `src/theme/typography.ts` - Typography scale
+  - `src/theme/radius.ts` - Border radius scale
+  - `src/theme/index.ts` - Unified theme with Design Tokens
+- Official brand assets:
+  - `src/assets/images/Icono.png` - Official app icon
+  - `src/assets/images/Splash.png` - Official splash screen
+- Android launcher icons (all densities)
+- Android adaptive icons (foreground, background, monochrome)
+- Release signing keystore (`guidy-release.jks`)
+- `docs/BRANDING.md` - Brand guidelines documentation
+- GitHub Actions workflow for automatic APK releases
+
+### Changed
+- Updated SplashScreen to use official splash image
+- Updated theme to use Design Tokens exclusively
+- Updated build.gradle with release signing configuration
+- Updated README.md with Stage 1.5 status
+
+### Fixed
+- ESLint unused variable in store
+
+---
+
+## [STAGE 1] - 2025-07-20
+
+### Added
+- Splash Screen with animated logo
+- Home Screen with welcome message and navigation buttons
+- Configuracion Screen with interest categories list
+- Recorrido Screen with map placeholder
+- AppNavigator with React Navigation stack
+- Theme system (light/dark) with React Native Paper MD3
+- Logo component with Material Community Icons
+
+### Changed
+- Updated App.tsx with navigation integration
+- Updated screens index with all exports
 
 ---
 
