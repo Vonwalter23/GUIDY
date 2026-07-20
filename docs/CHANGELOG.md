@@ -9,6 +9,92 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [STAGE 3] - 2026-07-17
+
+### Added
+- Map Engine module (`src/services/maps/`):
+  - `MapTypes.ts` - TypeScript interfaces for map types
+  - `MapConstants.ts` - Map configuration constants (OSM tiles, zoom levels)
+  - `MapUtils.ts` - Utility functions for coordinate transformations
+  - `MapService.ts` - Core map service singleton
+  - `MapProvider.tsx` - React Context provider
+  - `useMapStore.ts` - Zustand global store
+- OpenStreetMap component (`src/components/OpenStreetMap.tsx`):
+  - WebView-based map using Leaflet.js
+  - Real-time user location marker
+  - Follow/unfollow user mode
+  - Pan and zoom gestures
+- Integration with Location Engine:
+  - Automatic location updates on map
+  - Centering on user location
+  - GPS status display
+- Comprehensive test suite for MapEngine:
+  - MapUtils unit tests
+  - MapService unit tests
+- Documentation (`docs/MAP_ENGINE.md`):
+  - Architecture explanation
+  - Provider selection rationale
+  - Communication with Location Engine
+  - Scalability considerations
+  - Usage examples
+
+### Changed
+- Updated RecorridoScreen to display OpenStreetMap:
+  - Map takes 45% of screen height
+  - GPS status indicator
+  - Coordinate display card
+  - Follow/Unfollow button
+  - Center on user FAB
+- Updated App.tsx to include MapProvider
+- Replaced react-native-maps with react-native-webview for OSM
+
+### Dependencies Added
+- `react-native-webview` - WebView for map rendering
+
+### Dependencies Removed
+- `react-native-maps` - Replaced by WebView solution
+
+### Fixed
+- WebView mock for Jest testing
+- MapUtils test coverage
+- TypeScript type issues
+
+---
+
+## [STAGE 2] - 2026-07-17
+
+### Added
+- Complete Location Engine module (`src/services/location/`):
+  - `LocationTypes.ts` - TypeScript types for GPS coordinates
+  - `LocationPermissions.ts` - Android permission handling
+  - `LocationUtils.ts` - Geolocation utility functions
+  - `DistanceCalculator.ts` - Haversine formula implementation
+  - `MovementDetector.ts` - Movement detection (walking/running/driving)
+  - `LocationService.ts` - Main service with getCurrentLocation, startLocationUpdates
+  - `LocationProvider.tsx` - React Context provider
+  - `useLocationStore.ts` - Zustand global store
+- RecorridoScreen with GPS status:
+  - GPS status indicator
+  - Coordinate display
+  - Accuracy indicator
+  - Speed display
+  - Permission request flow
+  - Tracking toggle buttons
+- Comprehensive test suite:
+  - Jest mocks for Geolocation
+  - SafeAreaContext mock
+  - Location service tests
+
+### Dependencies Added
+- `@react-native-community/geolocation` - GPS API
+- `@react-native-community/hooks` - App state hooks
+
+### Documentation
+- STAGE_2_REPORT.md - Complete closure report
+- GitHub Release v0.0.2-STAGE2
+
+---
+
 ## [STAGE 1.5] - 2025-07-20
 
 ### Added
@@ -99,25 +185,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Subtitle: "AI Audio Tourist Companion"
 
 ---
-
-## [STAGE 1] - Planned
-
-- Navigation structure implementation
-- Theme configuration
-- Base screen templates
-- Error boundaries
-
-## [STAGE 2] - Planned
-
-- GPS integration
-- Location permissions
-- Real-time location updates
-
-## [STAGE 3] - Planned
-
-- OpenStreetMap integration
-- Map component
-- POI markers
 
 ## [STAGE 4] - Planned
 

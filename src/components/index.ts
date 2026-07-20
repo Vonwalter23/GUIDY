@@ -4,3 +4,4 @@
  */
 
 export {default as Logo} from './Logo';
+export {OpenStreetMap} from './OpenStreetMap';

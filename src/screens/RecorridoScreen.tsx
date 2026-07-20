@@ -1,11 +1,11 @@
 /**
  * GUIDY - Recorrido Screen
- * Screen showing GPS status and location information
+ * Screen showing map and GPS location information
  */
 
 import React, {useEffect} from 'react';
-import {View, StyleSheet, ScrollView} from 'react-native';
-import {Text, Surface, useTheme, Button, Divider} from 'react-native-paper';
+import {View, StyleSheet, Dimensions} from 'react-native';
+import {Text, Surface, useTheme, Button, FAB} from 'react-native-paper';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
@@ -16,10 +16,9 @@ import {
   formatLatitude,
   formatLongitude,
   formatAccuracy,
-  formatSpeed,
-  formatLastUpdate,
-  getAccuracyLevel,
 } from '../services/location';
+import {OpenStreetMap} from '../components';
+import {useMap} from '../services/maps';
 
 type RootStackParamList = {
   Home: undefined;
@@ -42,6 +41,15 @@ function RecorridoScreen({}: Props): React.JSX.Element {
     startTracking,
     stopTracking,
   } = useLocation();
+  
+  const {
+    isFollowingUser,
+    centerOnUser,
+    toggleFollowMode,
+  } = useMap();
+  
+  const screenHeight = Dimensions.get('window').height;
+  const mapHeight = screenHeight * 0.45; // 45% of screen for map
 
   // Start tracking when permission is granted
   useEffect(() => {
@@ -132,172 +140,126 @@ function RecorridoScreen({}: Props): React.JSX.Element {
     <SafeAreaView
       style={[styles.container, {backgroundColor: theme.colors.background}]}
       edges={['bottom']}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* GPS Status Indicator */}
-        <Surface
-          style={[
-            styles.gpsStatusCard,
-            {backgroundColor: theme.colors.primaryContainer},
-          ]}
-          elevation={1}>
-          <View style={styles.gpsStatusRow}>
-            <Icon
-              name={gpsStatus === 'active' ? 'crosshairs-gps' : 'crosshairs'}
-              size={32}
-              color={getGpsStatusColor()}
-            />
-            <View style={styles.gpsStatusInfo}>
-              <Text
-                variant="titleMedium"
-                style={{color: getGpsStatusColor()}}>
-                {getGpsStatusText()}
-              </Text>
-              <Text
-                variant="bodySmall"
-                style={{color: theme.colors.onPrimaryContainer}}>
-                {getPermissionText()}
-              </Text>
-            </View>
-            <View
-              style={[
-                styles.statusDot,
-                {backgroundColor: getGpsStatusColor()},
-              ]}
-            />
-          </View>
-        </Surface>
+      {/* Map Section */}
+      <View style={[styles.mapContainer, {height: mapHeight}]}>
+        <OpenStreetMap
+          showsUserLocation={true}
+          showsMyLocationButton={false}
+          showsCompass={true}
+          showsScale={true}
+          followsUserLocation={isFollowingUser}
+        />
+        
+        {/* Center on User FAB */}
+        <FAB
+          icon={isFollowingUser ? 'crosshairs-gps' : 'map-marker'}
+          style={[styles.fab, {backgroundColor: theme.colors.primaryContainer}]}
+          color={theme.colors.primary}
+          size="small"
+          onPress={centerOnUser}
+        />
+      </View>
 
-        {/* Location Information */}
-        <Surface style={[styles.infoCard, {backgroundColor: theme.colors.surface}]} elevation={1}>
-          <Text
-            variant="titleMedium"
-            style={[styles.sectionTitle, {color: theme.colors.onSurface}]}>
-            Información de Ubicación
-          </Text>
-
-          <Divider style={styles.divider} />
-
-          {/* Latitude */}
-          <View style={styles.infoRow}>
-            <View style={styles.infoLabel}>
-              <Icon name="latitude" size={20} color={theme.colors.primary} />
-              <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant}}>
-                Latitud
-              </Text>
-            </View>
+      {/* GPS Status Card */}
+      <Surface
+        style={[
+          styles.gpsStatusCard,
+          {backgroundColor: theme.colors.primaryContainer},
+        ]}
+        elevation={1}>
+        <View style={styles.gpsStatusRow}>
+          <Icon
+            name={gpsStatus === 'active' ? 'crosshairs-gps' : 'crosshairs'}
+            size={28}
+            color={getGpsStatusColor()}
+          />
+          <View style={styles.gpsStatusInfo}>
             <Text
-              variant="bodyLarge"
-              style={[styles.infoValue, {color: theme.colors.onSurface}]}>
+              variant="titleSmall"
+              style={{color: getGpsStatusColor()}}>
+              {getGpsStatusText()}
+            </Text>
+            <Text
+              variant="bodySmall"
+              style={{color: theme.colors.onPrimaryContainer}}>
+              {getPermissionText()}
+            </Text>
+          </View>
+          <View
+            style={[
+              styles.statusDot,
+              {backgroundColor: getGpsStatusColor()},
+            ]}
+          />
+        </View>
+      </Surface>
+
+      {/* Coordinates Card */}
+      <Surface style={[styles.coordinatesCard, {backgroundColor: theme.colors.surface}]} elevation={1}>
+        <View style={styles.coordRow}>
+          <View style={styles.coordItem}>
+            <Icon name="latitude" size={18} color={theme.colors.primary} />
+            <Text variant="bodySmall" style={{color: theme.colors.onSurfaceVariant}}>
+              Lat
+            </Text>
+            <Text variant="titleMedium" style={{color: theme.colors.onSurface}}>
               {currentLocation ? formatLatitude(currentLocation.latitude) : 'N/A'}
             </Text>
           </View>
-
-          {/* Longitude */}
-          <View style={styles.infoRow}>
-            <View style={styles.infoLabel}>
-              <Icon name="longitude" size={20} color={theme.colors.primary} />
-              <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant}}>
-                Longitud
-              </Text>
-            </View>
-            <Text
-              variant="bodyLarge"
-              style={[styles.infoValue, {color: theme.colors.onSurface}]}>
+          <View style={styles.coordItem}>
+            <Icon name="longitude" size={18} color={theme.colors.primary} />
+            <Text variant="bodySmall" style={{color: theme.colors.onSurfaceVariant}}>
+              Lng
+            </Text>
+            <Text variant="titleMedium" style={{color: theme.colors.onSurface}}>
               {currentLocation ? formatLongitude(currentLocation.longitude) : 'N/A'}
             </Text>
           </View>
-
-          {/* Accuracy */}
-          <View style={styles.infoRow}>
-            <View style={styles.infoLabel}>
-              <Icon name="target" size={20} color={theme.colors.primary} />
-              <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant}}>
-                Precisión
-              </Text>
-            </View>
-            <View style={styles.accuracyContainer}>
-              <Text
-                variant="bodyLarge"
-                style={[styles.infoValue, {color: theme.colors.onSurface}]}>
-                {currentLocation ? formatAccuracy(currentLocation.accuracy) : 'N/A'}
-              </Text>
-              {currentLocation && (
-                <Text
-                  variant="bodySmall"
-                  style={[styles.accuracyLevel, {color: getAccuracyLevelColor(currentLocation.accuracy)}]}>
-                  {getAccuracyLevel(currentLocation.accuracy)}
-                </Text>
-              )}
-            </View>
-          </View>
-
-          {/* Speed */}
-          <View style={styles.infoRow}>
-            <View style={styles.infoLabel}>
-              <Icon name="speedometer" size={20} color={theme.colors.primary} />
-              <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant}}>
-                Velocidad
-              </Text>
-            </View>
-            <Text
-              variant="bodyLarge"
-              style={[styles.infoValue, {color: theme.colors.onSurface}]}>
-              {currentLocation ? formatSpeed(currentLocation.speed ?? null) : 'N/A'}
+          <View style={styles.coordItem}>
+            <Icon name="target" size={18} color={theme.colors.primary} />
+            <Text variant="bodySmall" style={{color: theme.colors.onSurfaceVariant}}>
+              Prec
+            </Text>
+            <Text 
+              variant="titleMedium" 
+              style={{color: currentLocation ? getAccuracyLevelColor(currentLocation.accuracy) : theme.colors.onSurface}}>
+              {currentLocation ? formatAccuracy(currentLocation.accuracy) : 'N/A'}
             </Text>
           </View>
-
-          <Divider style={styles.divider} />
-
-          {/* Last Update */}
-          <View style={styles.infoRow}>
-            <View style={styles.infoLabel}>
-              <Icon name="clock-outline" size={20} color={theme.colors.primary} />
-              <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant}}>
-                Última Actualización
-              </Text>
-            </View>
-            <Text
-              variant="bodyLarge"
-              style={[styles.infoValue, {color: theme.colors.onSurface}]}>
-              {lastUpdate ? formatLastUpdate(lastUpdate) : 'Nunca'}
-            </Text>
-          </View>
-        </Surface>
-
-        {/* Error Display */}
-        {error && (
-          <Surface
-            style={[styles.errorCard, {backgroundColor: theme.colors.errorContainer}]}
-            elevation={1}>
-            <Icon name="alert-circle" size={24} color={theme.colors.error} />
-            <Text
-              variant="bodyMedium"
-              style={[styles.errorText, {color: theme.colors.onErrorContainer}]}>
-              {error.message}
-            </Text>
-          </Surface>
-        )}
-
-        {/* Control Buttons */}
-        <View style={styles.controlsRow}>
-          <Button
-            mode="contained"
-            onPress={startTracking}
-            disabled={isTracking}
-            icon="play"
-            style={styles.controlButton}>
-            Iniciar GPS
-          </Button>
-          <Button
-            mode="outlined"
-            onPress={stopTracking}
-            disabled={!isTracking}
-            icon="stop"
-            style={styles.controlButton}>
-            Detener GPS
-          </Button>
         </View>
-      </ScrollView>
+      </Surface>
+
+      {/* Error Display */}
+      {error && (
+        <Surface
+          style={[styles.errorCard, {backgroundColor: theme.colors.errorContainer}]}
+          elevation={1}>
+          <Icon name="alert-circle" size={20} color={theme.colors.error} />
+          <Text
+            variant="bodySmall"
+            style={[styles.errorText, {color: theme.colors.onErrorContainer}]}>
+            {error.message}
+          </Text>
+        </Surface>
+      )}
+
+      {/* Control Buttons */}
+      <View style={styles.controlsContainer}>
+        <Button
+          mode={isTracking ? 'contained' : 'outlined'}
+          onPress={isTracking ? stopTracking : startTracking}
+          icon={isTracking ? 'stop' : 'play'}
+          style={styles.controlButton}>
+          {isTracking ? 'Detener' : 'Iniciar GPS'}
+        </Button>
+        <Button
+          mode={isFollowingUser ? 'contained' : 'outlined'}
+          onPress={toggleFollowMode}
+          icon="crosshairs-gps"
+          style={styles.controlButton}>
+          {isFollowingUser ? 'Siguiendo' : 'Seguir'}
+        </Button>
+      </View>
     </SafeAreaView>
   );
 }
@@ -315,9 +277,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollContent: {
-    padding: spacing.md,
-    gap: spacing.md,
+  mapContainer: {
+    width: '100%',
+    overflow: 'hidden',
+  },
+  fab: {
+    position: 'absolute',
+    right: spacing.md,
+    bottom: spacing.md,
   },
   permissionContainer: {
     flex: 1,
@@ -344,66 +311,54 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   gpsStatusCard: {
-    padding: spacing.md,
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+    padding: spacing.sm,
     borderRadius: borderRadius.md,
   },
   gpsStatusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   gpsStatusInfo: {
     flex: 1,
   },
   statusDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
-  infoCard: {
-    padding: spacing.md,
-    borderRadius: borderRadius.lg,
+  coordinatesCard: {
+    marginHorizontal: spacing.md,
+    marginTop: spacing.sm,
+    padding: spacing.sm,
+    borderRadius: borderRadius.md,
   },
-  sectionTitle: {
-    fontWeight: '600',
-    marginBottom: spacing.sm,
-  },
-  divider: {
-    marginVertical: spacing.sm,
-  },
-  infoRow: {
+  coordRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
+  },
+  coordItem: {
     alignItems: 'center',
-    paddingVertical: spacing.xs,
-  },
-  infoLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  infoValue: {
-    fontWeight: '500',
-  },
-  accuracyContainer: {
-    alignItems: 'flex-end',
-  },
-  accuracyLevel: {
-    textTransform: 'capitalize',
+    gap: 2,
   },
   errorCard: {
+    marginHorizontal: spacing.md,
+    marginTop: spacing.sm,
+    padding: spacing.sm,
+    borderRadius: borderRadius.md,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
     gap: spacing.sm,
   },
   errorText: {
     flex: 1,
   },
-  controlsRow: {
+  controlsContainer: {
     flexDirection: 'row',
-    gap: spacing.md,
+    padding: spacing.md,
+    gap: spacing.sm,
   },
   controlButton: {
     flex: 1,

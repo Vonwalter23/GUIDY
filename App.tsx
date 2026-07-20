@@ -19,8 +19,9 @@ import {AppNavigator} from './src/navigation';
 // Import theme
 import {lightTheme, darkTheme} from './src/theme';
 
-// Import location provider
+// Import providers
 import {LocationProvider} from './src/services/location';
+import {MapProvider} from './src/services/maps';
 
 /**
  * Main App Component
@@ -38,7 +39,9 @@ function App(): React.JSX.Element {
           backgroundColor={theme.colors.background}
         />
         <LocationProvider>
-          <AppNavigator />
+          <MapProvider>
+            <AppNavigator />
+          </MapProvider>
         </LocationProvider>
       </PaperProvider>
     </SafeAreaProvider>
