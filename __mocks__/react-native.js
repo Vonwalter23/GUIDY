@@ -1,6 +1,33 @@
 /**
  * Mock for react-native modules
+ * Includes jest mock functions for testing
  */
+
+// Create mock functions that support jest methods
+const createMockFn = (defaultValue) => {
+  const mockFn = (...args) => Promise.resolve(defaultValue);
+  mockFn.mockResolvedValue = (val) => {
+    const fn = (...a) => Promise.resolve(val);
+    fn.mockResolvedValueOnce = (v) => fn;
+    fn.mockRejectedValue = (e) => fn;
+    fn.mockRejectedValueOnce = (e) => fn;
+    return fn;
+  };
+  mockFn.mockResolvedValueOnce = (val) => mockFn.mockResolvedValue(val);
+  mockFn.mockRejectedValue = (err) => {
+    const fn = (...a) => {
+      /* ignore error */
+      return Promise.reject(err);
+    };
+    fn.mockResolvedValue = mockFn.mockResolvedValue;
+    fn.mockResolvedValueOnce = mockFn.mockResolvedValueOnce;
+    fn.mockRejectedValue = mockFn.mockRejectedValue;
+    fn.mockRejectedValueOnce = (e) => fn;
+    return fn;
+  };
+  mockFn.mockRejectedValueOnce = (err) => mockFn.mockRejectedValue(err);
+  return mockFn;
+};
 
 // PermissionsAndroid mock
 const PermissionsAndroid = {
@@ -13,9 +40,9 @@ const PermissionsAndroid = {
     DENIED: 'denied',
     NEVER_ASK_AGAIN: 'never_ask_again',
   },
-  check: jest.fn().mockResolvedValue(false),
-  request: jest.fn().mockResolvedValue('granted'),
-  requestMultiple: jest.fn().mockResolvedValue({
+  check: createMockFn(false),
+  request: createMockFn('granted'),
+  requestMultiple: createMockFn({
     'android.permission.ACCESS_FINE_LOCATION': 'granted',
     'android.permission.ACCESS_COARSE_LOCATION': 'granted',
   }),
@@ -23,7 +50,7 @@ const PermissionsAndroid = {
 
 // Linking mock
 const Linking = {
-  openSettings: jest.fn().mockResolvedValue(undefined),
+  openSettings: createMockFn(undefined),
 };
 
 // Platform mock

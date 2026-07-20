@@ -1,17 +1,26 @@
 /**
  * GUIDY - Location Provider
  * React context and hooks for location functionality
+ * 
+ * Provides:
+ * - Location state management via Zustand
+ * - Permission handling
+ * - GPS tracking with callbacks
+ * - Automatic initial location fetch
  */
 
 import React, {createContext, useContext, useEffect, useCallback, useRef} from 'react';
 import {useAppState} from '@react-native-community/hooks';
-import type {LocationData, PermissionStatus} from './LocationTypes';
+import type {LocationData, PermissionStatus, GpsStatus} from './LocationTypes';
 import {LocationErrorCode} from './LocationTypes';
 import locationService from './LocationService';
 import {requestLocationPermission, getPermissionStatus} from './LocationPermissions';
 import {getGpsStatus} from './LocationUtils';
 import {useLocationStore} from './useLocationStore';
 import {createMovementDetector} from './MovementDetector';
+
+// Debug logging flag - set to false in production
+const DEBUG_GPS = true;
 
  /**
  * Location Provider Props
@@ -31,7 +40,7 @@ interface LocationContextValue {
   currentLocation: LocationData | null;
   previousLocation: LocationData | null;
   permissionStatus: PermissionStatus;
-  gpsStatus: 'active' | 'inactive' | 'unavailable';
+  gpsStatus: GpsStatus;
   isTracking: boolean;
   isMoving: boolean;
   error: {code: string; message: string} | null;
@@ -85,6 +94,13 @@ export function LocationProvider({
   // Handle location updates
   const handleLocationUpdate = useCallback(
     (location: LocationData) => {
+      if (DEBUG_GPS) {
+        console.log('[GPS Provider] Location update:', {
+          lat: location.latitude.toFixed(6),
+          lng: location.longitude.toFixed(6),
+        });
+      }
+
       // Update previous location
       if (store.currentLocation) {
         store.setPreviousLocation(store.currentLocation);
@@ -93,7 +109,7 @@ export function LocationProvider({
       // Update current location
       store.setCurrentLocation(location);
 
-      // Update GPS status
+      // Update GPS status to active
       store.setGpsStatus(getGpsStatus(location));
 
       // Update movement state
@@ -112,11 +128,17 @@ export function LocationProvider({
   // Handle location errors
   const handleLocationError = useCallback(
     (error: {code: string; message: string}) => {
+      if (DEBUG_GPS) {
+        console.log('[GPS Provider] Location error:', error);
+      }
+
       const locationError = {
         code: error.code as LocationErrorCode,
         message: error.message,
       };
       store.setError(locationError);
+      store.setGpsStatus('unavailable');
+      
       if (error.code === LocationErrorCode.PERMISSION_DENIED) {
         store.setPermissionStatus('denied');
       }
@@ -127,27 +149,72 @@ export function LocationProvider({
   // Start tracking
   const startTracking = useCallback(() => {
     if (store.isTracking) {
+      if (DEBUG_GPS) {
+        console.log('[GPS Provider] Already tracking');
+      }
       return;
     }
 
+    if (DEBUG_GPS) {
+      console.log('[GPS Provider] Starting tracking');
+    }
+
+    // Set tracking state
     store.setIsTracking(true);
+    
+    // Set GPS status to searching while we get first fix
+    store.setGpsStatus('searching');
+    
+    // Clear any previous errors
+    store.setError(null);
+
+    // Start continuous location updates
     locationService.startLocationUpdates(
       handleLocationUpdate,
       handleLocationError,
       {enableHighAccuracy, distanceFilter, interval},
     );
+
+    // Also request immediate location for faster first fix
+    if (DEBUG_GPS) {
+      console.log('[GPS Provider] Requesting immediate location');
+    }
+    
+    locationService.getCurrentLocation({enableHighAccuracy})
+      .then(handleLocationUpdate)
+      .catch((error) => {
+        if (DEBUG_GPS) {
+          console.log('[GPS Provider] Immediate location failed:', error);
+        }
+        // Don't call handleLocationError here - let watchPosition handle it
+        // The error will be shown if both methods fail
+      });
   }, [store, handleLocationUpdate, handleLocationError, enableHighAccuracy, distanceFilter, interval]);
 
   // Stop tracking
   const stopTracking = useCallback(() => {
+    if (DEBUG_GPS) {
+      console.log('[GPS Provider] Stopping tracking');
+    }
+    
     locationService.stopLocationUpdates();
     store.setIsTracking(false);
+    store.setGpsStatus('inactive');
   }, [store]);
 
   // Request permission
   const requestPermission = useCallback(async () => {
+    if (DEBUG_GPS) {
+      console.log('[GPS Provider] Requesting permission');
+    }
+    
     const result = await requestLocationPermission();
     store.setPermissionStatus(result.status);
+    
+    if (DEBUG_GPS) {
+      console.log('[GPS Provider] Permission result:', result.status);
+    }
+    
     return {
       granted: result.status === 'granted' || result.status === 'limited',
       status: result.status,
@@ -156,6 +223,12 @@ export function LocationProvider({
 
   // Refresh location once
   const refreshLocation = useCallback(async () => {
+    if (DEBUG_GPS) {
+      console.log('[GPS Provider] Refreshing location');
+    }
+    
+    store.setGpsStatus('searching');
+    
     try {
       const location = await locationService.getCurrentLocation({enableHighAccuracy});
       handleLocationUpdate(location);
@@ -166,13 +239,20 @@ export function LocationProvider({
         message: err.message || 'Error desconocido',
       });
     }
-  }, [handleLocationUpdate, handleLocationError, enableHighAccuracy]);
+  }, [store, handleLocationUpdate, handleLocationError, enableHighAccuracy]);
 
   // Check permission on mount
   useEffect(() => {
     const checkPermission = async () => {
+      if (DEBUG_GPS) {
+        console.log('[GPS Provider] Checking permission on mount');
+      }
       const status = await getPermissionStatus();
       store.setPermissionStatus(status);
+      
+      if (DEBUG_GPS) {
+        console.log('[GPS Provider] Initial permission status:', status);
+      }
     };
     checkPermission();
   }, [store]);
@@ -180,9 +260,15 @@ export function LocationProvider({
   // Handle app state changes
   useEffect(() => {
     if (appState === 'active' && store.permissionStatus === 'granted') {
-      // App came to foreground - could refresh location
+      if (DEBUG_GPS) {
+        console.log('[GPS Provider] App became active, permission granted');
+      }
+      // Could refresh location here if needed
     } else if (appState === 'background') {
-      // App went to background - continue tracking if needed
+      if (DEBUG_GPS) {
+        console.log('[GPS Provider] App went to background');
+      }
+      // Continue tracking if needed
     }
   }, [appState, store.permissionStatus]);
 
@@ -190,6 +276,9 @@ export function LocationProvider({
   useEffect(() => {
     const detector = movementDetectorRef.current;
     return () => {
+      if (DEBUG_GPS) {
+        console.log('[GPS Provider] Cleanup on unmount');
+      }
       // Stop location tracking
       locationService.stopLocationUpdates();
       if (detector) {
@@ -251,7 +340,7 @@ export function useHasLocationPermission(): boolean {
 /**
  * Hook to get GPS status
  */
-export function useGpsStatus(): 'active' | 'inactive' | 'unavailable' {
+export function useGpsStatus(): GpsStatus {
   const {gpsStatus} = useLocation();
   return gpsStatus;
 }

@@ -1,6 +1,11 @@
 /**
  * GUIDY - Location Service
  * Main service for handling location operations
+ * 
+ * Provides:
+ * - getCurrentLocation: Get single location fix
+ * - startLocationUpdates: Continuous location tracking
+ * - stopLocationUpdates: Stop tracking
  */
 
 import Geolocation, {
@@ -19,11 +24,14 @@ import {DEFAULT_LOCATION_OPTIONS} from './LocationTypes';
 import {hasLocationPermission, requestLocationPermission} from './LocationPermissions';
 import {isValidLocation} from './LocationUtils';
 
+// Debug logging flag - set to false in production
+const DEBUG_GPS = true;
+
 /**
  * Convert Geolocation response to LocationData
  */
 function toLocationData(response: GeolocationResponse): LocationData {
-  return {
+  const location: LocationData = {
     latitude: response.coords.latitude,
     longitude: response.coords.longitude,
     altitude: response.coords.altitude,
@@ -33,34 +41,46 @@ function toLocationData(response: GeolocationResponse): LocationData {
     heading: response.coords.heading,
     timestamp: response.timestamp,
   };
+  
+  if (DEBUG_GPS) {
+    console.log('[GPS] toLocationData:', {
+      lat: location.latitude.toFixed(6),
+      lng: location.longitude.toFixed(6),
+      accuracy: location.accuracy,
+    });
+  }
+  
+  return location;
 }
 
 /**
  * Convert Geolocation error to LocationError
  */
 function toLocationError(error: GeolocationError): LocationError {
+  let errorMsg = '';
+  
   switch (error.code) {
     case 1: // PERMISSION_DENIED
-      return {
-        code: LocationErrorCode.PERMISSION_DENIED,
-        message: 'Permiso de ubicación denegado',
-      };
+      errorMsg = 'Permiso de ubicación denegado';
+      break;
     case 2: // POSITION_UNAVAILABLE
-      return {
-        code: LocationErrorCode.POSITION_UNAVAILABLE,
-        message: 'Ubicación no disponible',
-      };
+      errorMsg = 'Ubicación no disponible. Verifique que el GPS esté activado.';
+      break;
     case 3: // TIMEOUT
-      return {
-        code: LocationErrorCode.TIMEOUT,
-        message: 'Tiempo de espera de ubicación agotado',
-      };
+      errorMsg = 'Tiempo de espera de ubicación agotado. Intente nuevamente.';
+      break;
     default:
-      return {
-        code: LocationErrorCode.UNKNOWN,
-        message: error.message || 'Error desconocido de ubicación',
-      };
+      errorMsg = error.message || 'Error desconocido de ubicación';
   }
+  
+  if (DEBUG_GPS) {
+    console.log('[GPS] Error:', error.code, errorMsg);
+  }
+  
+  return {
+    code: error.code.toString() as LocationErrorCode,
+    message: errorMsg,
+  };
 }
 
 /**
@@ -80,11 +100,18 @@ class LocationService {
   async getCurrentLocation(
     options: Partial<LocationOptions> = {},
   ): Promise<LocationData> {
+    if (DEBUG_GPS) {
+      console.log('[GPS] getCurrentLocation requested');
+    }
+    
     const mergedOptions = {...this.currentOptions, ...options};
 
     // Check permission first
     const hasPermission = await hasLocationPermission();
     if (!hasPermission) {
+      if (DEBUG_GPS) {
+        console.log('[GPS] No permission, requesting...');
+      }
       const result = await requestLocationPermission();
       if (result.status !== 'granted' && result.status !== 'limited') {
         throw {code: LocationErrorCode.PERMISSION_DENIED, message: 'Permiso de ubicación denegado'};
@@ -92,8 +119,15 @@ class LocationService {
     }
 
     return new Promise((resolve, reject) => {
+      if (DEBUG_GPS) {
+        console.log('[GPS] Calling Geolocation.getCurrentPosition');
+      }
+      
       Geolocation.getCurrentPosition(
         (position: GeolocationResponse) => {
+          if (DEBUG_GPS) {
+            console.log('[GPS] getCurrentPosition success');
+          }
           const location = toLocationData(position);
           if (isValidLocation(location)) {
             resolve(location);
@@ -102,12 +136,15 @@ class LocationService {
           }
         },
         (error: GeolocationError) => {
+          if (DEBUG_GPS) {
+            console.log('[GPS] getCurrentPosition error:', error);
+          }
           reject(toLocationError(error));
         },
         {
-          enableHighAccuracy: mergedOptions.enableHighAccuracy,
-          timeout: mergedOptions.timeout,
-          maximumAge: mergedOptions.maximumAge,
+          enableHighAccuracy: mergedOptions.enableHighAccuracy ?? true,
+          timeout: mergedOptions.timeout ?? 15000,
+          maximumAge: mergedOptions.maximumAge ?? 0,
         },
       );
     });
@@ -125,8 +162,12 @@ class LocationService {
     options: Partial<LocationOptions> = {},
   ): void {
     if (this.isTracking) {
-      console.warn('Location updates already running');
+      console.warn('[GPS] Location updates already running');
       return;
+    }
+
+    if (DEBUG_GPS) {
+      console.log('[GPS] startLocationUpdates called');
     }
 
     const mergedOptions = {...this.currentOptions, ...options};
@@ -135,20 +176,37 @@ class LocationService {
     // Check permission first
     hasLocationPermission()
       .then(hasPermission => {
+        if (DEBUG_GPS) {
+          console.log('[GPS] hasPermission:', hasPermission);
+        }
+        
         if (!hasPermission) {
+          if (DEBUG_GPS) {
+            console.log('[GPS] Requesting permission...');
+          }
           return requestLocationPermission();
         }
         return {status: 'granted' as const, canAskAgain: true};
       })
       .then(result => {
         if (result.status !== 'granted' && result.status !== 'limited') {
+          if (DEBUG_GPS) {
+            console.log('[GPS] Permission not granted:', result.status);
+          }
           onError({code: LocationErrorCode.PERMISSION_DENIED, message: 'Permiso de ubicación denegado'});
           return;
+        }
+
+        if (DEBUG_GPS) {
+          console.log('[GPS] Permission granted, starting watchPosition');
         }
 
         // @react-native-community/geolocation uses distanceFilter instead of interval
         this.watchId = Geolocation.watchPosition(
           (position: GeolocationResponse) => {
+            if (DEBUG_GPS) {
+              console.log('[GPS] watchPosition success');
+            }
             const location = toLocationData(position);
             if (isValidLocation(location)) {
               this.isTracking = true;
@@ -156,6 +214,9 @@ class LocationService {
             }
           },
           (error: GeolocationError) => {
+            if (DEBUG_GPS) {
+              console.log('[GPS] watchPosition error:', error);
+            }
             onError(toLocationError(error));
           },
           {
@@ -165,8 +226,14 @@ class LocationService {
         );
 
         this.isTracking = true;
+        if (DEBUG_GPS) {
+          console.log('[GPS] watchId:', this.watchId);
+        }
       })
       .catch((error: LocationError) => {
+        if (DEBUG_GPS) {
+          console.log('[GPS] startLocationUpdates error:', error);
+        }
         onError(error);
       });
   }
@@ -175,6 +242,10 @@ class LocationService {
    * Stop continuous location updates
    */
   stopLocationUpdates(): void {
+    if (DEBUG_GPS) {
+      console.log('[GPS] stopLocationUpdates, watchId:', this.watchId);
+    }
+    
     if (this.watchId !== null) {
       Geolocation.clearWatch(this.watchId);
       this.watchId = null;

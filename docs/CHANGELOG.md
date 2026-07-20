@@ -9,6 +9,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [STAGE 3.2] - 2026-07-17
+
+### Added
+- State 'searching' to GpsStatus type:
+  - searching: GPS is searching for location
+  - active: GPS is receiving valid location updates
+  - inactive: GPS is enabled but no movement detected
+  - unavailable: GPS is disabled or unavailable
+- Debug logging for GPS operations:
+  - `[GPS]` prefix for LocationService logs
+  - `[GPS Provider]` prefix for LocationProvider logs
+- Immediate location request on tracking start:
+  - getCurrentLocation() called alongside watchPosition()
+  - Faster first fix for better UX
+
+### Changed
+- RecorridoScreen now shows clear status messages:
+  - "Buscando ubicación..." when gpsStatus = 'searching'
+  - "GPS Conectado" when gpsStatus = 'active'
+  - Shows "..." instead of "N/A" while searching
+- LocationProvider updated:
+  - Sets gpsStatus to 'searching' when starting tracking
+  - Calls both getCurrentLocation() and startLocationUpdates()
+  - Better error handling for location failures
+- LocationService updated:
+  - Added timeout configuration for getCurrentPosition
+  - Improved error messages with user-friendly text
+  - Better debug logging
+
+### Fixed
+- GPS not delivering coordinates after permission grant:
+  - Now requests immediate location on tracking start
+  - watchPosition alone can take 30-60 seconds for first fix
+  - Combined approach provides faster location acquisition
+- Coordinates showing "N/A" instead of actual values:
+  - Now shows "..." while searching
+  - Status updates immediately to 'searching'
+
+### Documentation
+- `docs/STAGE_3_2_ANALYSIS.md` - Complete root cause analysis
+- `docs/STAGE_3_2_REPORT.md` - Closure report
+
+---
+
 ## [STAGE 3.1] - 2026-07-17
 
 ### Added

@@ -43,8 +43,12 @@ export interface PermissionResult {
 
 /**
  * GPS status indicator
+ * - searching: GPS is searching for location
+ * - active: GPS is receiving valid location updates
+ * - inactive: GPS is enabled but no movement detected
+ * - unavailable: GPS is disabled or unavailable
  */
-export type GpsStatus = 'active' | 'inactive' | 'unavailable';
+export type GpsStatus = 'searching' | 'active' | 'inactive' | 'unavailable';
 
 /**
  * Movement state

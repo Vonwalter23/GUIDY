@@ -82,6 +82,8 @@ function RecorridoScreen({}: Props): React.JSX.Element {
 
   const getGpsStatusColor = () => {
     switch (gpsStatus) {
+      case 'searching':
+        return '#2196F3'; // Blue - searching
       case 'active':
         return '#4CAF50'; // Green
       case 'inactive':
@@ -95,8 +97,10 @@ function RecorridoScreen({}: Props): React.JSX.Element {
 
   const getGpsStatusText = () => {
     switch (gpsStatus) {
+      case 'searching':
+        return 'Buscando ubicación...';
       case 'active':
-        return 'GPS Activo';
+        return 'GPS Conectado';
       case 'inactive':
         return 'GPS Inactivo';
       case 'unavailable':
@@ -320,7 +324,7 @@ function RecorridoScreen({}: Props): React.JSX.Element {
               Lat
             </Text>
             <Text variant="titleMedium" style={{color: theme.colors.onSurface}}>
-              {currentLocation ? formatLatitude(currentLocation.latitude) : 'N/A'}
+              {currentLocation ? formatLatitude(currentLocation.latitude) : (gpsStatus === 'searching' ? '...' : 'N/A')}
             </Text>
           </View>
           <View style={styles.coordItem}>
@@ -329,7 +333,7 @@ function RecorridoScreen({}: Props): React.JSX.Element {
               Lng
             </Text>
             <Text variant="titleMedium" style={{color: theme.colors.onSurface}}>
-              {currentLocation ? formatLongitude(currentLocation.longitude) : 'N/A'}
+              {currentLocation ? formatLongitude(currentLocation.longitude) : (gpsStatus === 'searching' ? '...' : 'N/A')}
             </Text>
           </View>
           <View style={styles.coordItem}>
@@ -340,7 +344,7 @@ function RecorridoScreen({}: Props): React.JSX.Element {
             <Text 
               variant="titleMedium" 
               style={{color: currentLocation ? getAccuracyLevelColor(currentLocation.accuracy) : theme.colors.onSurface}}>
-              {currentLocation ? formatAccuracy(currentLocation.accuracy) : 'N/A'}
+              {currentLocation ? formatAccuracy(currentLocation.accuracy) : (gpsStatus === 'searching' ? '...' : 'N/A')}
             </Text>
           </View>
         </View>
@@ -350,13 +354,13 @@ function RecorridoScreen({}: Props): React.JSX.Element {
           <View style={styles.additionalInfoItem}>
             <Icon name="speedometer" size={16} color={theme.colors.secondary} />
             <Text variant="bodySmall" style={{color: theme.colors.onSurfaceVariant, marginLeft: 4}}>
-              {currentLocation ? formatSpeed(currentLocation.speed ?? null) : 'N/A'}
+              {currentLocation ? formatSpeed(currentLocation.speed ?? null) : (gpsStatus === 'searching' ? '...' : 'N/A')}
             </Text>
           </View>
           <View style={styles.additionalInfoItem}>
             <Icon name="clock-outline" size={16} color={theme.colors.secondary} />
             <Text variant="bodySmall" style={{color: theme.colors.onSurfaceVariant, marginLeft: 4}}>
-              {lastUpdate ? formatLastUpdate(lastUpdate) : 'N/A'}
+              {lastUpdate ? formatLastUpdate(lastUpdate) : (gpsStatus === 'searching' ? '...' : 'N/A')}
             </Text>
           </View>
         </View>
