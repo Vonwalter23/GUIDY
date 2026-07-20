@@ -101,4 +101,32 @@ El motor de ubicación está implementado y listo para integración con el mapa 
 
 ---
 
+## Capturas del Emulador
+
+**Nota**: Las capturas del emulador requieren un entorno Android con emulator/device real. 
+El APK Debug está disponible para instalación manual en:
+- Release URL: https://github.com/Vonwalter23/GUIDY/releases/tag/v0.0.2-STAGE2
+
+### Pasos para verificar manualmente:
+1. Descargar `GUIDY-v0.0.2-STAGE2-debug.apk` del release
+2. Instalar en dispositivo Android con `adb install GUIDY-v0.0.2-STAGE2-debug.apk`
+3. Navegar a la pantalla "Recorrido" para ver:
+   - Coordenadas GPS actuales
+   - Indicador de precisión
+   - Velocidad
+   - Estado de movimiento
+   - Botón de toggle de tracking
+
+---
+
+## GitHub Release
+
+Release publicado: https://github.com/Vonwalter23/GUIDY/releases/tag/v0.0.2-STAGE2
+
+Assets:
+- `GUIDY-v0.0.2-STAGE2-debug.apk` (149MB) 
+- `GUIDY-v0.0.2-STAGE2-release.apk` (63MB)
+
+---
+
 *Generado automáticamente por el sistema de CI*
