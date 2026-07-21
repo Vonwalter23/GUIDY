@@ -93,11 +93,11 @@ android {
             keyPassword 'android'
         }
         release {
-            // Production keystore - GUIDY Release
-            storeFile file(GUIDY_KEYSTORE_FILE)
-            storePassword GUIDY_KEYSTORE_PASSWORD
-            keyAlias GUIDY_KEY_ALIAS
-            keyPassword GUIDY_KEY_PASSWORD
+            // Release keystore - GUIDY Release
+            storeFile file('guidy-release.jks')
+            storePassword 'guidy123'
+            keyAlias 'guidy'
+            keyPassword 'guidy123'
         }
     }
     buildTypes {
