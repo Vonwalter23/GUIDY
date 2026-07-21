@@ -21,6 +21,7 @@ export interface LocationData extends Coordinates {
   speed?: number | null;
   heading?: number | null;
   timestamp: number;
+  provider?: string;
 }
 
 /**
