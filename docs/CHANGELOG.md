@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [STAGE 3.3A] - 2026-07-21
+
+### Fixed
+- Fixed LocationRequest API compatibility issue in GuidyLocationModule.kt
+- Updated LocationRequest creation to use default constructor with property setters
+- Changed from deprecated constructor `LocationRequest(fastestInterval, interval)` to default constructor with properties
+- Now uses:
+  - `locationRequest.interval = interval`
+  - `locationRequest.fastestInterval = fastestInterval`
+  - `locationRequest.smallestDisplacement = distanceFilter.toFloat()`
+  - `locationRequest.priority = priority`
+
+### Build
+- Debug APK: BUILD SUCCESSFUL
+- Release APK: BUILD SUCCESSFUL
+
+---
+
 ## [STAGE 3.3] - 2026-07-21
 
 ### Added

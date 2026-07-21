@@ -1,7 +1,6 @@
 package com.guidy.location
 
 import android.Manifest
-import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
@@ -13,17 +12,13 @@ import com.facebook.react.bridge.*
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import com.google.android.gms.location.*
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
 /**
  * GUIDY Location Module - FusedLocationProviderClient Implementation
  * 
  * Uses Android's FusedLocationProviderClient for optimal GPS performance.
- * Provides:
- * - Single location requests with timeout
- * - Continuous location tracking
- * - Automatic provider fallback
- * - Battery optimization
  */
 
 class GuidyLocationModule(private val reactContext: ReactApplicationContext) :
@@ -40,7 +35,6 @@ class GuidyLocationModule(private val reactContext: ReactApplicationContext) :
     private var fusedLocationClient: FusedLocationProviderClient? = null
     private var locationCallback: LocationCallback? = null
     private var isTracking = false
-    private var pendingLocationCallback: Callback? = null
     private var pendingWatchCallbacks: Callback? = null
     private var pendingErrorCallback: Callback? = null
     private var permissionPromise: Promise? = null
@@ -68,17 +62,15 @@ class GuidyLocationModule(private val reactContext: ReactApplicationContext) :
     @ReactMethod
     fun hasPermission(promise: Promise) {
         log("Checking location permission...")
-        val fineLocation = ContextCompat.checkSelfPermission(
+        val hasFine = ContextCompat.checkSelfPermission(
             reactContext,
             Manifest.permission.ACCESS_FINE_LOCATION
-        )
-        val coarseLocation = ContextCompat.checkSelfPermission(
+        ) == PackageManager.PERMISSION_GRANTED
+        
+        val hasCoarse = ContextCompat.checkSelfPermission(
             reactContext,
             Manifest.permission.ACCESS_COARSE_LOCATION
-        )
-
-        val hasFine = fineLocation == PackageManager.PERMISSION_GRANTED
-        val hasCoarse = coarseLocation == PackageManager.PERMISSION_GRANTED
+        ) == PackageManager.PERMISSION_GRANTED
 
         log("Permission check - Fine: $hasFine, Coarse: $hasCoarse")
         promise.resolve(hasFine || hasCoarse)
@@ -88,24 +80,24 @@ class GuidyLocationModule(private val reactContext: ReactApplicationContext) :
     fun requestPermission(promise: Promise) {
         log("Requesting location permission...")
         
-        val activity = currentActivity
+        val activity = reactContext.currentActivity
         if (activity == null) {
             log("No activity available")
             promise.reject("E_NO_ACTIVITY", "No activity available")
             return
         }
 
-        val fineLocation = ContextCompat.checkSelfPermission(
+        val hasFine = ContextCompat.checkSelfPermission(
             reactContext,
             Manifest.permission.ACCESS_FINE_LOCATION
-        )
-        val coarseLocation = ContextCompat.checkSelfPermission(
+        ) == PackageManager.PERMISSION_GRANTED
+        
+        val hasCoarse = ContextCompat.checkSelfPermission(
             reactContext,
             Manifest.permission.ACCESS_COARSE_LOCATION
-        )
+        ) == PackageManager.PERMISSION_GRANTED
 
-        if (fineLocation == PackageManager.PERMISSION_GRANTED || 
-            coarseLocation == PackageManager.PERMISSION_GRANTED) {
+        if (hasFine || hasCoarse) {
             log("Permission already granted")
             val result = Arguments.createMap().apply {
                 putString("status", "granted")
@@ -126,50 +118,13 @@ class GuidyLocationModule(private val reactContext: ReactApplicationContext) :
         log("Permission request sent to system")
     }
 
-    fun handlePermissionResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
-        if (requestCode == PERMISSION_REQUEST_CODE) {
-            log("Permission result received: ${grantResults.contentToString()}")
-            
-            val fineGranted = grantResults.getOrNull(0) == PackageManager.PERMISSION_GRANTED
-            val coarseGranted = grantResults.getOrNull(1) == PackageManager.PERMISSION_GRANTED
-            
-            val result = Arguments.createMap().apply {
-                when {
-                    fineGranted -> {
-                        putString("status", "granted")
-                        putBoolean("canAskAgain", true)
-                    }
-                    coarseGranted -> {
-                        putString("status", "limited")
-                        putBoolean("canAskAgain", true)
-                    }
-                    !ActivityCompat.shouldShowRequestPermissionRationale(
-                        currentActivity!!,
-                        Manifest.permission.ACCESS_FINE_LOCATION
-                    ) -> {
-                        putString("status", "blocked")
-                        putBoolean("canAskAgain", false)
-                    }
-                    else -> {
-                        putString("status", "denied")
-                        putBoolean("canAskAgain", true)
-                    }
-                }
-            }
-            
-            log("Permission result: ${result.getString("status")}")
-            permissionPromise?.resolve(result)
-            permissionPromise = null
-        }
-    }
-
     // Get current location once
     @ReactMethod
     fun getCurrentLocation(options: ReadableMap, promise: Promise) {
         log("=== GET CURRENT LOCATION ===")
         log("Options: $options")
 
-        if (!hasLocationPermission()) {
+        if (!hasLocationPermissionSync()) {
             log("No permission - rejecting")
             promise.reject("PERMISSION_DENIED", "Location permission not granted")
             return
@@ -189,14 +144,12 @@ class GuidyLocationModule(private val reactContext: ReactApplicationContext) :
         try {
             log("Requesting location with priority: $priority")
 
-            // Try getCurrentLocation first (most reliable with FusedLocationProviderClient)
             fusedLocationClient?.getCurrentLocation(priority, null)?.addOnSuccessListener { location ->
                 if (location != null) {
                     log("Got location from getCurrentLocation: ${location.latitude}, ${location.longitude}")
                     promise.resolve(locationToMap(location))
                 } else {
                     log("getCurrentLocation returned null, trying last location...")
-                    // Fallback to last known location
                     fusedLocationClient?.lastLocation?.addOnSuccessListener { lastLocation ->
                         if (lastLocation != null) {
                             log("Got location from lastLocation: ${lastLocation.latitude}, ${lastLocation.longitude}")
@@ -229,7 +182,7 @@ class GuidyLocationModule(private val reactContext: ReactApplicationContext) :
         log("=== START LOCATION UPDATES ===")
         log("Options: $options")
 
-        if (!hasLocationPermission()) {
+        if (!hasLocationPermissionSync()) {
             log("No permission - calling error")
             errorCallback.invoke("PERMISSION_DENIED", "Location permission not granted")
             return
@@ -258,10 +211,12 @@ class GuidyLocationModule(private val reactContext: ReactApplicationContext) :
             Priority.PRIORITY_BALANCED_POWER_ACCURACY
         }
 
-        val locationRequest = LocationRequest.Builder(priority, interval)
-            .setMinUpdateIntervalMillis(fastestInterval)
-            .setMinUpdateDistanceMeters(distanceFilter.toFloat())
-            .build()
+        // Create LocationRequest using default constructor
+        val locationRequest = LocationRequest()
+        locationRequest.interval = interval
+        locationRequest.fastestInterval = fastestInterval
+        locationRequest.smallestDisplacement = distanceFilter.toFloat()
+        locationRequest.priority = priority
 
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(result: LocationResult) {
@@ -270,7 +225,6 @@ class GuidyLocationModule(private val reactContext: ReactApplicationContext) :
                     val locationMap = locationToMap(location)
                     pendingWatchCallbacks?.invoke(null, locationMap)
                     
-                    // Also emit event
                     val event = Arguments.createMap().apply {
                         putMap("location", locationMap)
                         putString("type", "locationUpdate")
@@ -301,7 +255,6 @@ class GuidyLocationModule(private val reactContext: ReactApplicationContext) :
             isTracking = true
             log("Location updates started successfully")
             
-            // Emit started event
             val event = Arguments.createMap().apply {
                 putString("type", "trackingStarted")
                 putBoolean("isTracking", true)
@@ -349,7 +302,6 @@ class GuidyLocationModule(private val reactContext: ReactApplicationContext) :
         promise.resolve(isTracking)
     }
 
-    // Add listener for events
     @ReactMethod
     fun addListener(eventName: String) {
         log("Added listener for: $eventName")
@@ -360,17 +312,18 @@ class GuidyLocationModule(private val reactContext: ReactApplicationContext) :
         log("Removed $count listeners")
     }
 
-    private fun hasLocationPermission(): Boolean {
-        val fineLocation = ContextCompat.checkSelfPermission(
+    private fun hasLocationPermissionSync(): Boolean {
+        val hasFine = ContextCompat.checkSelfPermission(
             reactContext,
             Manifest.permission.ACCESS_FINE_LOCATION
-        )
-        val coarseLocation = ContextCompat.checkSelfPermission(
+        ) == PackageManager.PERMISSION_GRANTED
+        
+        val hasCoarse = ContextCompat.checkSelfPermission(
             reactContext,
             Manifest.permission.ACCESS_COARSE_LOCATION
-        )
-        return fineLocation == PackageManager.PERMISSION_GRANTED || 
-               coarseLocation == PackageManager.PERMISSION_GRANTED
+        ) == PackageManager.PERMISSION_GRANTED
+        
+        return hasFine || hasCoarse
     }
 
     private fun locationToMap(location: Location): WritableMap {
@@ -379,7 +332,7 @@ class GuidyLocationModule(private val reactContext: ReactApplicationContext) :
             putDouble("longitude", location.longitude)
             putDouble("altitude", location.altitude)
             putDouble("accuracy", location.accuracy.toDouble())
-            putDouble("altitudeAccuracy", if (location.hasAltitudeAccuracy()) location.verticalAccuracyAccuracy.toDouble() else 0.0)
+            putDouble("altitudeAccuracy", 0.0) // Not available in standard Location API
             putDouble("speed", if (location.hasSpeed()) location.speed.toDouble() else 0.0)
             putDouble("heading", if (location.hasBearing()) location.bearing.toDouble() else 0.0)
             putDouble("timestamp", location.time.toDouble())
@@ -387,7 +340,6 @@ class GuidyLocationModule(private val reactContext: ReactApplicationContext) :
         }
     }
 
-    // Lifecycle events
     override fun onHostResume() {
         log("Activity resumed")
     }
