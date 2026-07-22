@@ -64,6 +64,8 @@ function RecorridoScreen({}: Props): React.JSX.Element {
   // Using useRef to track if tracking has been started to prevent multiple calls
   const trackingStartedRef = React.useRef(false);
   
+  // STAGE 3.3J: Using trackingStartedRef to prevent multiple startTracking calls
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     // Only start tracking once when permission is granted
     if (permissionStatus === 'granted' && !isTracking && !trackingStartedRef.current) {
@@ -74,7 +76,7 @@ function RecorridoScreen({}: Props): React.JSX.Element {
     if (!isTracking) {
       trackingStartedRef.current = false;
     }
-  }, [permissionStatus, isTracking]);
+  }, [permissionStatus, isTracking, startTracking]);
 
   // Handle permission request with better UX
   const handlePermissionRequest = useCallback(async () => {
