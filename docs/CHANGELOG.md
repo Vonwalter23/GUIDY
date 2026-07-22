@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [STAGE 3.3G] - 2026-07-22
+
+### Fixed
+- **ObjectAlreadyConsumedException: Map already consumed** in GuidyLocationModule.kt
+- Created separate WritableMap instances for callback and event
+- Each location update now creates fresh map objects to avoid reuse
+
+### Root Cause
+- WritableNativeMap can only be used once in React Native bridge
+- The same map was being passed to both callback and event, causing crash
+
+### Files Changed
+- `android/app/src/main/java/com/guidy/location/GuidyLocationModule.kt` (onLocationResult)
+
+---
+
 ## [STAGE 3.3F] - 2026-07-22
 
 ### Fixed

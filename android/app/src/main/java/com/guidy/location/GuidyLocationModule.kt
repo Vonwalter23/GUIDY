@@ -436,7 +436,7 @@ class GuidyLocationModule(private val reactContext: ReactApplicationContext) :
         
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(result: LocationResult) {
-                // STAGE 3.3C: Check if module is still valid
+                // STAGE 3.3G: Check if module is still valid
                 if (!isModuleReady || !isTracking) {
                     log("onLocationResult: Module not tracking, ignoring callback")
                     return
@@ -444,17 +444,22 @@ class GuidyLocationModule(private val reactContext: ReactApplicationContext) :
                 
                 result.lastLocation?.let { location ->
                     log("Location update: ${location.latitude}, ${location.longitude}, acc: ${location.accuracy}m, provider: ${location.provider}")
-                    val locationMap = locationToMap(location)
                     
-                    // STAGE 3.3C: Safe callback invocation
+                    // STAGE 3.3G: Create separate maps for callback and event
+                    // WritableNativeMap can only be used once, so we create separate instances
+                    val locationMapForCallback = locationToMap(location)
+                    val locationMapForEvent = locationToMap(location)
+                    
+                    // STAGE 3.3G: Safe callback invocation
                     try {
-                        currentWatchCallback?.invoke(null, locationMap)
+                        currentWatchCallback?.invoke(null, locationMapForCallback)
                     } catch (e: Exception) {
                         log("Error invoking watchCallback: ${e.message}")
                     }
                     
+                    // STAGE 3.3G: Send event with fresh map
                     val event = Arguments.createMap().apply {
-                        putMap("location", locationMap)
+                        putMap("location", locationMapForEvent)
                         putString("type", "locationUpdate")
                     }
                     sendEvent("GuidyLocationUpdate", event)
