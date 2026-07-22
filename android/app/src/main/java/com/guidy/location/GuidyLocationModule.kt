@@ -431,19 +431,28 @@ class GuidyLocationModule(private val reactContext: ReactApplicationContext) :
                 }
             }
 
+            // STAGE 3.4B: Fixed GPS availability loop
+            // Previously only handled FALSE, causing infinite loop when GPS became available again
             override fun onLocationAvailability(availability: LocationAvailability) {
-                log("Location availability: ${availability.isLocationAvailable}")
+                log("[GPS AVAIL] ${availability.isLocationAvailable} tracking=$isTracking ready=$isModuleReady")
                 if (!isTracking || !isModuleReady) {
+                    log("[GPS AVAIL] Ignoring - not tracking or module not ready")
                     return
                 }
                 
                 if (!availability.isLocationAvailable) {
-                    val errorEvent = Arguments.createMap().apply {
-                        putString("type", "error")
-                        putString("code", "LOCATION_UNAVAILABLE")
-                        putString("message", "Location is not available")
+                    // GPS temporarily unavailable - send status update, NOT error
+                    // This prevents infinite loop between 'active' and 'unavailable'
+                    log("[GPS AVAIL] GPS temporarily unavailable - sending status")
+                    val statusEvent = Arguments.createMap().apply {
+                        putString("type", "gpsSearching")
+                        putBoolean("isLocationAvailable", false)
                     }
-                    sendEvent("GuidyLocationError", errorEvent)
+                    sendEvent("GuidyLocationStatus", statusEvent)
+                } else {
+                    // GPS available again - log only, don't send event
+                    // Location updates will come via onLocationResult
+                    log("[GPS AVAIL] GPS available - waiting for location updates")
                 }
             }
         }

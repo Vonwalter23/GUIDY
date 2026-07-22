@@ -85,58 +85,64 @@ class FusedLocationProvider {
       return;
     }
 
-    // Listen for status updates
+    // STAGE 3.4B: Listen for all status updates
     this.locationSubscription = locationEmitter.addListener(
       'GuidyLocationStatus',
-      (event: {type: string; isTracking: boolean}) => {
-        log('GuidyLocationStatus received:', event);
+      (event: {type: string; isTracking?: boolean; isLocationAvailable?: boolean}) => {
+        log('[FUSED] GuidyLocationStatus:', event);
+        
         if (event.type === 'trackingStopped') {
           this.isCurrentlyTrackingState = false;
           this.trackingCallback = null;
           this.errorCallback = null;
         }
+        
+        // STAGE 3.4B: Handle GPS searching status
+        // This is sent when GPS temporarily unavailable, NOT an error
+        if (event.type === 'gpsSearching') {
+          log('[FUSED] GPS temporarily unavailable - searching');
+          // Don't call error callback - this is a temporary state
+          // The GPS will become available again
+        }
       },
     );
 
     // STAGE 3.3K: Listen for location updates via events ONLY
-    // This is the correct way to receive continuous updates
     this.updateSubscription = locationEmitter.addListener(
       'GuidyLocationUpdate',
       (event: {location: LocationData; type: string}) => {
-        log('Native location update received via event:', {
+        log('[FUSED] Location update:', {
           lat: event.location.latitude.toFixed(6),
           lng: event.location.longitude.toFixed(6),
           accuracy: event.location.accuracy,
         });
         
-        // Only invoke callback if we're tracking
         if (this.isCurrentlyTrackingState && this.trackingCallback) {
           try {
             this.trackingCallback(event.location);
           } catch (err) {
-            log('Error invoking tracking callback:', err);
+            log('[FUSED] Error invoking tracking callback:', err);
           }
         }
       },
     );
 
-    // Listen for error events
+    // Listen for error events (only true errors, not GPS availability)
     this.errorSubscription = locationEmitter.addListener(
       'GuidyLocationError',
       (event: {code: string; message: string; type: string}) => {
-        log('GuidyLocationError received:', event);
-        // Forward error to callback if we have one
+        log('[FUSED] GuidyLocationError:', event);
         if (this.errorCallback) {
           try {
             this.errorCallback(event.code, event.message);
           } catch (err) {
-            log('Error invoking error callback:', err);
+            log('[FUSED] Error invoking error callback:', err);
           }
         }
       },
     );
 
-    log('Event listeners setup complete');
+    log('[FUSED] Event listeners setup complete');
   }
 
   /**

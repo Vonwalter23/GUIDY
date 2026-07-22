@@ -71,4 +71,12 @@ export {
   useIsTracking as useStoreIsTracking,
   useLastUpdate as useStoreLastUpdate,
   useLocationError as useStoreError,
+  useEngineState,
 } from './useLocationStore';
+
+// Location State Machine
+export {
+  LocationEngineState,
+  LocationEvent,
+  locationStateMachine,
+} from './LocationStateMachine';
