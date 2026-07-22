@@ -9,6 +9,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [STAGE 3.4A] - 2026-07-22
+
+### Added
+- **DOCUMENTACIÓN**: Auditoría completa de máquina de estados de ubicación
+- **DIAGRAMA**: Flujo completo de estados desde usuario hasta GPS nativo
+
+### Root Cause Analysis
+
+**Problema 1: Loop GPS Disponible ↔ No Disponible**
+
+- **Archivo:** `GuidyLocationModule.kt`
+- **Líneas:** 434-447
+- **Causa:** `onLocationAvailability()` solo maneja cuando disponibilidad es FALSE
+- **Falta:** No hay manejo cuando disponibilidad vuelve a TRUE
+
+```
+onLocationAvailability(false) → gpsStatus = 'unavailable'
+onLocationAvailability(true)  → ❌ NO SE MANEJA
+→ Loop infinito entre 'active' y 'unavailable'
+```
+
+**Problema 2: Navegación fallida post-permisos**
+
+- **Análisis:** Flujo de código es correcto
+- **Verificación:** Requiere logs en dispositivo físico
+- **Pendiente:** Confirmar que startTracking() se ejecuta post-permisos
+
+### Files Added
+- `docs/STAGE_3_4A_STATE_MACHINE_AUDIT.md`
+
+### Status
+- **AUDITORÍA COMPLETADA**
+- **ESPERANDO APROBACIÓN HUMANA**
+- **NO se implementaron fixes (STAGE de auditoría únicamente)**
+
+---
+
 ## [STAGE 3.4] - 2026-07-22
 
 ### Fixed
