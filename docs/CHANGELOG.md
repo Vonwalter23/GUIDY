@@ -9,6 +9,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [STAGE 3.4B] - 2026-07-22
+
+### Added
+- **LocationStateMachine**: Nueva máquina de estados como fuente única de verdad
+- **Arquitectura simplificada**: Store ahora solo guarda permiso
+
+### Fixed
+- **GPS Loop**: `onLocationAvailability` ahora maneja correctamente TRUE y FALSE
+- **Contrato**: Sincronizado entre todos los componentes
+
+### Changed
+- `LocationProvider.tsx`: Reescrito para usar state machine
+- `useLocationStore.ts`: Simplificado
+- `FusedLocationProvider.ts`: Actualizado para manejar nuevos eventos
+- `GuidyLocationModule.kt`: Corregido loop GPS
+
+### State Machine States
+```
+IDLE → REQUESTING_PERMISSION → PERMISSION_GRANTED → STARTING_LOCATION → WAITING_FIRST_FIX → TRACKING → STOPPED
+```
+
+### Files Changed
+| Archivo | Cambio |
+|---------|--------|
+| `src/services/location/LocationStateMachine.ts` | NUEVO |
+| `src/services/location/useLocationStore.ts` | REFACTORIZADO |
+| `src/services/location/LocationProvider.tsx` | REFACTORIZADO |
+| `src/services/location/FusedLocationProvider.ts` | ACTUALIZADO |
+| `src/services/location/index.ts` | ACTUALIZADO |
+| `android/.../GuidyLocationModule.kt` | CORREGIDO |
+
+### Build
+| Check | Resultado |
+|-------|-----------|
+| TypeScript | 0 errors |
+| ESLint | 0 errors, 7 warnings |
+| Tests | 47 passed, 1 failed (pre-existente) |
+| Debug APK | Generado |
+| Release APK | Generado |
+
+### SHA256
+- Debug: `a537a47084da72ebd55c81c0131977eaa6741f824f21d842c4a6ffc8aa8373ac`
+- Release: `9880ad9ea86ec507ec6574efc2c4e71df9fe4f227fd7bddc2d36be596f09a4cb`
+
+---
+
 ## [STAGE 3.4A] - 2026-07-22
 
 ### Added
