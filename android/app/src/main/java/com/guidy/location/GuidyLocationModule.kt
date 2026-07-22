@@ -39,8 +39,7 @@ class GuidyLocationModule(private val reactContext: ReactApplicationContext) :
     private var locationCallback: LocationCallback? = null
     private var isTracking = false
     private var isModuleReady = false
-    private var pendingWatchCallbacks: Callback? = null
-    private var pendingErrorCallback: Callback? = null
+    // STAGE 3.4: Removed pendingWatchCallbacks and pendingErrorCallback - using events only
     private var permissionPromise: Promise? = null
     private val dateFormat = SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault())
 
@@ -136,33 +135,7 @@ class GuidyLocationModule(private val reactContext: ReactApplicationContext) :
         }
     }
     
-    // STAGE 3.3C: Safe callback invocation
-    private fun safeInvokeWatchCallback(locationMap: WritableMap) {
-        if (!isModuleReady || !isTracking) {
-            log("Cannot invoke callback - module not tracking")
-            return
-        }
-        try {
-            pendingWatchCallbacks?.invoke(null, locationMap)
-        } catch (e: Exception) {
-            log("Error invoking watch callback: ${e.message}")
-        }
-    }
-    
-    // STAGE 3.3C: Safe error callback invocation
-    private fun safeInvokeErrorCallback(code: String, message: String) {
-        if (!isModuleReady) {
-            log("Cannot invoke error callback - module not ready")
-            return
-        }
-        try {
-            pendingErrorCallback?.invoke(code, message)
-            pendingErrorCallback = null
-            pendingWatchCallbacks = null
-        } catch (e: Exception) {
-            log("Error invoking error callback: ${e.message}")
-        }
-    }
+    // STAGE 3.4: Removed safeInvokeWatchCallback and safeInvokeErrorCallback - using events only
 
     // Permission checking
     @ReactMethod
@@ -363,40 +336,45 @@ class GuidyLocationModule(private val reactContext: ReactApplicationContext) :
     }
 
     // Start continuous location updates
+    // STAGE 3.4: Synchronized contract - accepts only 1 parameter (options), uses events only
     @ReactMethod
-    fun startLocationUpdates(options: ReadableMap, watchCallback: Callback, errorCallback: Callback) {
+    fun startLocationUpdates(options: ReadableMap) {
+        log("=== START LOCATION UPDATES (EVENTS ONLY) ===")
+        
         // STAGE 3.3C: Check if module is ready first
         if (!isModuleReady) {
-            log("startLocationUpdates: Module not ready, calling error callback")
-            try {
-                errorCallback.invoke("E_MODULE_NOT_READY", "Location module not ready - Google Play Services issue")
-            } catch (e: Exception) {
-                log("Error invoking errorCallback: ${e.message}")
+            log("startLocationUpdates: Module not ready, sending error event")
+            val errorEvent = Arguments.createMap().apply {
+                putString("type", "error")
+                putString("code", "E_MODULE_NOT_READY")
+                putString("message", "Location module not ready - Google Play Services issue")
             }
+            sendEvent("GuidyLocationError", errorEvent)
             return
         }
         
         // STAGE 3.3C: Check if fusedLocationClient is available
         if (fusedLocationClient == null) {
-            log("startLocationUpdates: FusedLocationProviderClient is null")
-            try {
-                errorCallback.invoke("E_CLIENT_NULL", "Location client not available")
-            } catch (e: Exception) {
-                log("Error invoking errorCallback: ${e.message}")
+            log("startLocationUpdates: FusedLocationProviderClient is null, sending error event")
+            val errorEvent = Arguments.createMap().apply {
+                putString("type", "error")
+                putString("code", "E_CLIENT_NULL")
+                putString("message", "Location client not available")
             }
+            sendEvent("GuidyLocationError", errorEvent)
             return
         }
         
-        log("=== START LOCATION UPDATES ===")
         log("Options: $options")
 
         if (!hasLocationPermissionSync()) {
-            log("No permission - calling error")
-            try {
-                errorCallback.invoke("PERMISSION_DENIED", "Location permission not granted")
-            } catch (e: Exception) {
-                log("Error invoking errorCallback: ${e.message}")
+            log("No permission - sending error event")
+            val errorEvent = Arguments.createMap().apply {
+                putString("type", "error")
+                putString("code", "PERMISSION_DENIED")
+                putString("message", "Location permission not granted")
             }
+            sendEvent("GuidyLocationError", errorEvent)
             return
         }
 
@@ -414,8 +392,8 @@ class GuidyLocationModule(private val reactContext: ReactApplicationContext) :
 
         log("Config - High accuracy: $enableHighAccuracy, Interval: ${interval}ms, Fastest: ${fastestInterval}ms, Distance: ${distanceFilter}m")
 
-        pendingWatchCallbacks = watchCallback
-        pendingErrorCallback = errorCallback
+        // STAGE 3.4: No callbacks stored - using events only
+        // pendingWatchCallbacks and pendingErrorCallback are no longer used
 
         val priority = if (enableHighAccuracy) {
             Priority.PRIORITY_HIGH_ACCURACY
@@ -430,9 +408,7 @@ class GuidyLocationModule(private val reactContext: ReactApplicationContext) :
         locationRequest.smallestDisplacement = distanceFilter.toFloat()
         locationRequest.priority = priority
 
-        // STAGE 3.3C: Use local reference for callbacks to prevent stale closures
-        val currentWatchCallback = watchCallback
-        val currentErrorCallback = errorCallback
+        // STAGE 3.4: No callbacks stored - using events only
         
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(result: LocationResult) {
@@ -489,22 +465,22 @@ class GuidyLocationModule(private val reactContext: ReactApplicationContext) :
             
         } catch (e: SecurityException) {
             log("SecurityException starting updates: ${e.message}")
-            try {
-                currentErrorCallback?.invoke("PERMISSION_DENIED", "Location permission denied")
-            } catch (ex: Exception) {
-                log("Error invoking errorCallback: ${ex.message}")
+            // STAGE 3.4: Send error event instead of callback
+            val errorEvent = Arguments.createMap().apply {
+                putString("type", "error")
+                putString("code", "PERMISSION_DENIED")
+                putString("message", "Location permission denied")
             }
-            pendingErrorCallback = null
-            pendingWatchCallbacks = null
+            sendEvent("GuidyLocationError", errorEvent)
         } catch (e: Exception) {
             log("Exception starting updates: ${e.message}")
-            try {
-                currentErrorCallback?.invoke("LOCATION_ERROR", e.message ?: "Unknown error")
-            } catch (ex: Exception) {
-                log("Error invoking errorCallback: ${ex.message}")
+            // STAGE 3.4: Send error event instead of callback
+            val errorEvent = Arguments.createMap().apply {
+                putString("type", "error")
+                putString("code", "LOCATION_ERROR")
+                putString("message", e.message ?: "Unknown error")
             }
-            pendingErrorCallback = null
-            pendingWatchCallbacks = null
+            sendEvent("GuidyLocationError", errorEvent)
         }
     }
 
@@ -530,8 +506,7 @@ class GuidyLocationModule(private val reactContext: ReactApplicationContext) :
         
         locationCallback = null
         isTracking = false
-        pendingWatchCallbacks = null
-        pendingErrorCallback = null
+        // STAGE 3.4: Removed pendingWatchCallbacks and pendingErrorCallback cleanup - using events only
         
         val event = Arguments.createMap().apply {
             putString("type", "trackingStopped")
@@ -613,8 +588,7 @@ class GuidyLocationModule(private val reactContext: ReactApplicationContext) :
         
         locationCallback = null
         isTracking = false
-        pendingWatchCallbacks = null
-        pendingErrorCallback = null
+        // STAGE 3.4: Removed pendingWatchCallbacks and pendingErrorCallback - using events only
         
         // Remove lifecycle listener to prevent further callbacks
         try {

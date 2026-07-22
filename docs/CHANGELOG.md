@@ -9,6 +9,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [STAGE 3.4] - 2026-07-22
+
+### Fixed
+- **CONTRATO DESINCRONIZADO**: TurboModule esperaba 3 argumentos pero TypeScript pasaba 1
+- **ROOT CAUSE**: GuidyLocationModule.kt todavía tenía firma con callbacks
+
+### Root Cause Analysis
+
+**El Problema:**
+El módulo nativo `GuidyLocationModule.kt` declaraba:
+```kotlin
+fun startLocationUpdates(options: ReadableMap, watchCallback: Callback, errorCallback: Callback)
+```
+
+Pero la interfaz TypeScript solo llamaba con 1 argumento:
+```typescript
+GuidyLocation.startLocationUpdates(mergedOptions)
+```
+
+**Evidencia:**
+```
+TurboModule method: startLocationUpdates called with 1 arguments expected 3 arguments
+```
+
+### Solution Applied
+
+1. **GuidyLocationModule.kt:**
+   - Cambió firma a `startLocationUpdates(options: ReadableMap)` (1 parámetro)
+   - Removió `pendingWatchCallbacks` y `pendingErrorCallback`
+   - Removió `safeInvokeWatchCallback()` y `safeInvokeErrorCallback()`
+   - Usa SOLO `sendEvent()` para errores
+
+2. **Contrato Sincronizado:**
+   - TypeScript: 1 parámetro
+   - Kotlin: 1 parámetro
+   - Eventos para actualizaciones continuas
+
+### Files Changed
+- `android/app/src/main/java/com/guidy/location/GuidyLocationModule.kt`
+
+### Quality Checks
+- TypeScript: 0 errors
+- ESLint: 0 errors, 10 warnings (pre-existentes)
+
+---
+
 ## [STAGE 3.3K] - 2026-07-22
 
 ### Fixed
