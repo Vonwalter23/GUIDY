@@ -1,9 +1,10 @@
 /**
  * GUIDY - Fused Location Provider (Native Module)
- * 
+ *
  * TypeScript wrapper for Android's FusedLocationProviderClient via native module.
  * Uses Google Play Services Location API for optimal GPS performance.
- * STAGE 3.3E: Fixed duplicate isTracking identifier and orphaned subscriptions.
+ * STAGE 3.3K: Uses ONLY NativeEventEmitter for continuous location updates.
+ * React Native callbacks have single-use semantics and cannot be reused.
  */
 
 import {NativeModules, NativeEventEmitter, Platform} from 'react-native';
@@ -13,16 +14,12 @@ import type {
   PermissionResult,
 } from './LocationTypes';
 
-// Native module interface
+// Native module interface - NO callbacks for startLocationUpdates
 interface GuidyLocationNativeModule {
   hasPermission(): Promise<boolean>;
   requestPermission(): Promise<PermissionResult>;
   getCurrentLocation(options: LocationOptions): Promise<LocationData>;
-  startLocationUpdates(
-    options: LocationOptions,
-    onLocation: (error: string | null, location: LocationData | null) => void,
-    onError: (code: string, message: string) => void,
-  ): void;
+  startLocationUpdates(options: LocationOptions): void;
   stopLocationUpdates(): void;
   isTracking(): Promise<boolean>;
 }
@@ -49,7 +46,7 @@ const log = (message: string, ...data: unknown[]): void => {
 };
 
 /**
- * STAGE 3.3E: Check if native module is available and ready
+ * STAGE 3.3K: Check if native module is available and ready
  */
 const isModuleReady = (): boolean => {
   return !!(GuidyLocation && locationEmitter);
@@ -58,15 +55,19 @@ const isModuleReady = (): boolean => {
 /**
  * FusedLocationProvider class
  * Uses native FusedLocationProviderClient for GPS operations
- * STAGE 3.3E: Fixed duplicate identifier and orphaned subscriptions
+ * STAGE 3.3K: Uses ONLY events for continuous updates, no callbacks
+ * 
+ * IMPORTANT: React Native callbacks have single-use semantics.
+ * They crash when invoked more than once.
+ * Solution: Use NativeEventEmitter for all continuous updates.
  */
 class FusedLocationProvider {
   private isInitialized = false;
-  private isCurrentlyTrackingState = false;  // STAGE 3.3E: Renamed to avoid conflict
+  private isCurrentlyTrackingState = false;
   private trackingCallback: ((location: LocationData) => void) | null = null;
   private errorCallback: ((code: string, message: string) => void) | null = null;
-  
-  // STAGE 3.3E: Store all subscriptions as instance properties for proper cleanup
+
+  // Store all subscriptions as instance properties for proper cleanup
   private locationSubscription: {remove: () => void} | null = null;
   private updateSubscription: {remove: () => void} | null = null;
   private errorSubscription: {remove: () => void} | null = null;
@@ -84,7 +85,7 @@ class FusedLocationProvider {
       return;
     }
 
-    // STAGE 3.3E: Listen for status updates - store subscription
+    // Listen for status updates
     this.locationSubscription = locationEmitter.addListener(
       'GuidyLocationStatus',
       (event: {type: string; isTracking: boolean}) => {
@@ -97,11 +98,17 @@ class FusedLocationProvider {
       },
     );
 
-    // STAGE 3.3E: Listen for location updates - store subscription
+    // STAGE 3.3K: Listen for location updates via events ONLY
+    // This is the correct way to receive continuous updates
     this.updateSubscription = locationEmitter.addListener(
       'GuidyLocationUpdate',
       (event: {location: LocationData; type: string}) => {
-        log('Native location update received:', event.location);
+        log('Native location update received via event:', {
+          lat: event.location.latitude.toFixed(6),
+          lng: event.location.longitude.toFixed(6),
+          accuracy: event.location.accuracy,
+        });
+        
         // Only invoke callback if we're tracking
         if (this.isCurrentlyTrackingState && this.trackingCallback) {
           try {
@@ -113,7 +120,7 @@ class FusedLocationProvider {
       },
     );
 
-    // STAGE 3.3E: Listen for error events - store subscription
+    // Listen for error events
     this.errorSubscription = locationEmitter.addListener(
       'GuidyLocationError',
       (event: {code: string; message: string; type: string}) => {
@@ -137,7 +144,7 @@ class FusedLocationProvider {
    */
   async hasPermission(): Promise<boolean> {
     log('hasPermission called');
-    
+
     if (!GuidyLocation) {
       log('GuidyLocation native module not available');
       return false;
@@ -158,7 +165,7 @@ class FusedLocationProvider {
    */
   async requestPermission(): Promise<PermissionResult> {
     log('requestPermission called');
-    
+
     if (!GuidyLocation) {
       log('GuidyLocation native module not available');
       return {status: 'unavailable', canAskAgain: false};
@@ -181,7 +188,7 @@ class FusedLocationProvider {
     options: Partial<LocationOptions> = {},
   ): Promise<LocationData> {
     log('getCurrentLocation called', options);
-    
+
     if (!GuidyLocation) {
       log('GuidyLocation native module not available');
       throw new Error('FusedLocationProvider not available - Google Play Services issue');
@@ -206,7 +213,6 @@ class FusedLocationProvider {
       return location;
     } catch (error: unknown) {
       log('getCurrentLocation error:', error);
-      // Provide more helpful error messages
       if (error instanceof Error) {
         if (error.message.includes('MODULE_NOT_READY')) {
           throw new Error('Location module not ready - Please restart the app');
@@ -224,6 +230,7 @@ class FusedLocationProvider {
 
   /**
    * Start continuous location updates
+   * STAGE 3.3K: Uses events instead of callbacks
    */
   startLocationUpdates(
     options: Partial<LocationOptions>,
@@ -231,14 +238,14 @@ class FusedLocationProvider {
     onError: (code: string, message: string) => void,
   ): void {
     log('startLocationUpdates called', options);
-    
+
     if (!GuidyLocation) {
       log('GuidyLocation native module not available');
       onError('MODULE_NOT_AVAILABLE', 'Native location module not available');
       return;
     }
 
-    // STAGE 3.3E: Store callbacks and mark as tracking
+    // Store callbacks for event listeners
     this.isCurrentlyTrackingState = true;
     this.trackingCallback = onLocation;
     this.errorCallback = onError;
@@ -253,33 +260,9 @@ class FusedLocationProvider {
     log('Starting location updates with:', mergedOptions);
 
     try {
-      GuidyLocation.startLocationUpdates(
-        mergedOptions,
-        (error, location) => {
-          // Check if we're still tracking before invoking callbacks
-          if (!this.isCurrentlyTrackingState) {
-            log('Received callback but not tracking, ignoring');
-            return;
-          }
-          
-          if (error) {
-            log('Location error callback:', error);
-            this.errorCallback?.(error, 'Location error');
-          } else if (location) {
-            log('Location callback:', {
-              lat: location.latitude.toFixed(6),
-              lng: location.longitude.toFixed(6),
-            });
-            this.trackingCallback?.(location);
-          }
-        },
-        (code, message) => {
-          log('Error callback:', code, message);
-          // Don't clear callbacks on error, let caller decide
-          this.errorCallback?.(code, message);
-        },
-      );
-      log('Location updates started');
+      // STAGE 3.3K: Call without callbacks - events handle the updates
+      GuidyLocation.startLocationUpdates(mergedOptions);
+      log('Location updates started via events');
     } catch (error) {
       log('startLocationUpdates exception:', error);
       this.isCurrentlyTrackingState = false;
@@ -289,11 +272,10 @@ class FusedLocationProvider {
 
   /**
    * Stop continuous location updates
-   * STAGE 3.3E: Also cleanup event subscriptions
    */
   stopLocationUpdates(): void {
     log('stopLocationUpdates called');
-    
+
     if (GuidyLocation) {
       try {
         GuidyLocation.stopLocationUpdates();
@@ -306,13 +288,10 @@ class FusedLocationProvider {
     this.isCurrentlyTrackingState = false;
     this.trackingCallback = null;
     this.errorCallback = null;
-    
-    // STAGE 3.3E: Clear subscriptions but don't remove them - they persist for the lifetime
-    // of the module to receive future events if tracking is restarted
   }
 
   /**
-   * STAGE 3.3E: Get internal tracking state
+   * Get internal tracking state
    */
   isCurrentlyTracking(): boolean {
     return this.isCurrentlyTrackingState;
@@ -320,13 +299,11 @@ class FusedLocationProvider {
 
   /**
    * Cleanup - removes all event subscriptions
-   * STAGE 3.3E: Properly remove all subscriptions
    */
   destroy(): void {
     log('Destroying FusedLocationProvider');
     this.stopLocationUpdates();
-    
-    // STAGE 3.3E: Remove all subscriptions
+
     const removeSubscription = (sub: {remove: () => void} | null, name: string) => {
       if (sub) {
         try {
@@ -337,15 +314,15 @@ class FusedLocationProvider {
         }
       }
     };
-    
+
     removeSubscription(this.locationSubscription, 'locationSubscription');
     removeSubscription(this.updateSubscription, 'updateSubscription');
     removeSubscription(this.errorSubscription, 'errorSubscription');
-    
+
     this.locationSubscription = null;
     this.updateSubscription = null;
     this.errorSubscription = null;
-    
+
     this.isInitialized = false;
     log('FusedLocationProvider destroyed');
   }

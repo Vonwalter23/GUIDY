@@ -1,17 +1,12 @@
 /**
  * GUIDY - Location Service
  * Main service for handling location operations
- * 
- * IMPORTANT: This file now uses FusedLocationProvider (Native Module)
- * which internally uses Android's FusedLocationProviderClient via Google Play Services.
- * 
- * The native module handles:
- * - Permission requests
- * - getCurrentLocation (single location with timeout)
- * - requestLocationUpdates (continuous tracking)
- * - Error handling
- * 
- * This provides optimal GPS performance on Android.
+ *
+ * Uses FusedLocationProvider (Native Module) with events.
+ * All continuous updates are delivered via NativeEventEmitter.
+ *
+ * STAGE 3.3K: Removed callback passing to native module.
+ * React Native callbacks have single-use semantics.
  */
 
 import type {
@@ -27,7 +22,7 @@ import {hasLocationPermission, requestLocationPermission} from './LocationPermis
 import {isValidLocation} from './LocationUtils';
 import {fusedLocationProvider} from './FusedLocationProvider';
 
-// Debug logging flag - MUST remain true until STAGE 4
+// Debug logging flag
 const DEBUG_GPS = true;
 
 const getTimestamp = (): string => new Date().toISOString();
@@ -66,6 +61,7 @@ function toLocationError(code: string, message: string): LocationError {
 /**
  * LocationService class
  * Provides high-level location functionality using FusedLocationProviderClient
+ * STAGE 3.3K: Uses events for continuous updates
  */
 class LocationService {
   private isTracking = false;
@@ -88,7 +84,6 @@ class LocationService {
     const mergedOptions = {...this.currentOptions, ...options};
     this.currentOptions = mergedOptions;
 
-    // Check permission first
     const hasPermission = await hasLocationPermission();
 
     if (DEBUG_GPS) {
@@ -149,6 +144,7 @@ class LocationService {
 
   /**
    * Start continuous location updates
+   * STAGE 3.3K: Uses events internally, callbacks are JS-side only
    */
   startLocationUpdates(
     onSuccess: LocationUpdateCallback,
@@ -193,6 +189,7 @@ class LocationService {
           console.log(`[GPS ${getTimestamp()}] Starting location updates via FusedLocationProvider...`);
         }
 
+        // STAGE 3.3K: Call startLocationUpdates - events are handled internally
         fusedLocationProvider.startLocationUpdates(
           {
             enableHighAccuracy: mergedOptions.enableHighAccuracy ?? true,

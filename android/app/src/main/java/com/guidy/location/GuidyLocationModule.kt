@@ -436,30 +436,27 @@ class GuidyLocationModule(private val reactContext: ReactApplicationContext) :
         
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(result: LocationResult) {
-                // STAGE 3.3G: Check if module is still valid
+                // STAGE 3.3K: Check if module is still valid
                 if (!isModuleReady || !isTracking) {
-                    log("onLocationResult: Module not tracking, ignoring callback")
+                    log("onLocationResult: Module not tracking, ignoring")
                     return
                 }
                 
                 result.lastLocation?.let { location ->
                     log("Location update: ${location.latitude}, ${location.longitude}, acc: ${location.accuracy}m, provider: ${location.provider}")
                     
-                    // STAGE 3.3H: Only use callback OR event, not both
-                    // Using only callback to avoid double invocation
-                    try {
-                        currentWatchCallback?.invoke(null, locationToMap(location))
-                    } catch (e: Exception) {
-                        log("Error invoking watchCallback: ${e.message}")
+                    // STAGE 3.3K: Use ONLY events for continuous updates
+                    // React Native callbacks have single-use semantics
+                    val locationEvent = Arguments.createMap().apply {
+                        putMap("location", locationToMap(location))
+                        putString("type", "locationUpdate")
                     }
-                    
-                    // STAGE 3.3H: Removed duplicate event emission to prevent double callback
+                    sendEvent("GuidyLocationUpdate", locationEvent)
                 }
             }
 
             override fun onLocationAvailability(availability: LocationAvailability) {
                 log("Location availability: ${availability.isLocationAvailable}")
-                // STAGE 3.3C: Check if still tracking
                 if (!isTracking || !isModuleReady) {
                     return
                 }

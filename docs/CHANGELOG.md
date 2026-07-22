@@ -9,6 +9,78 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [STAGE 3.3K] - 2026-07-22
+
+### Fixed
+- **ROOT CAUSE**: React Native callbacks have single-use semantics
+- **PROBLEMA**: App crasheaba con "Callback arg cannot be called more than once"
+- **PROBLEMA**: Navegación no funcionaba después de permisos
+
+### Root Cause Analysis
+
+**El Problema:**
+React Native Native Modules usan callbacks que tienen semantics de "single-use". 
+Cuando un callback nativo se invoca más de una vez, React Native crashea con SIGABRT.
+
+**Evidencia del Crash Log:**
+```
+11:04:09.681 - Location update received
+11:04:09.681 - ReactNativeJNI: Callback arg cannot be called more than once
+11:04:10.345 - Fatal signal 6 (SIGABRT)
+```
+
+**Causa Raíz:**
+El módulo nativo `GuidyLocationModule.kt` estaba usando `Callback.invoke()` 
+para entregar actualizaciones de ubicación continuas. Esto viola las semantics 
+de callbacks de React Native.
+
+### Solution Applied
+
+**STAGE 3.3K: Cambió el puente JS↔Native para usar SOLO eventos**
+
+1. **GuidyLocationModule.kt:**
+   - Removió callbacks del método `startLocationUpdates`
+   - Ahora usa `sendEvent()` para todas las actualizaciones de ubicación
+   - Implementó `LocationCallback` que envía eventos a JS
+
+2. **FusedLocationProvider.ts:**
+   - Actualizó interfaz para no pasar callbacks al nativo
+   - Listener de eventos `GuidyLocationUpdate` recibe actualizaciones
+   - Callbacks internos se invocan desde código JS, no nativo
+
+3. **LocationService.ts:**
+   - Sin cambios necesarios - usa la misma interfaz
+
+### Arquitectura del Bridge (Post-Fix)
+
+```
+JS Layer                          Native Layer
+┌──────────────────────┐          ┌──────────────────────────┐
+│ FusedLocationProvider│          │ GuidyLocationModule.kt   │
+│                      │          │                          │
+│ startLocationUpdates │ ───────► │ startLocationUpdates()   │
+│   (no callbacks)    │          │   (sin callbacks)       │
+│                      │          │                          │
+│ Event Listeners:     │          │ onLocationResult():      │
+│ - GuidyLocationUpdate│ ◄─────── │   sendEvent()            │
+│ - GuidyLocationError │          │   (NATIVE EVENTS ONLY)   │
+│ - GuidyLocationStatus│          │                          │
+└──────────────────────┘          └──────────────────────────┘
+```
+
+### Files Changed
+- `android/app/src/main/java/com/guidy/location/GuidyLocationModule.kt`
+- `src/services/location/FusedLocationProvider.ts`
+
+### Evidence
+- Build Debug: SUCCESS
+- Build Release: SUCCESS
+- TypeScript: 0 errors
+- APK Debug SHA-256: `5f072b8524da82f1a4439ad39944222676aee3d2edfeb35dd2725d6d22bc7b53`
+- APK Release SHA-256: `f5146d461f906e2daeb989d0605642b5b8bb3b47509b5a4622b320e9ac6bf6a3`
+
+---
+
 ## [STAGE 3.3J] - 2026-07-22
 
 ### Fixed
