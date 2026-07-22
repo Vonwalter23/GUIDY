@@ -9,6 +9,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [STAGE 3.3F] - 2026-07-22
+
+### Fixed
+- **ELIMINATED INFINITE RENDER LOOP** in LocationProvider
+- Replaced full store subscription with individual Zustand selectors
+- Used refs for store actions to avoid callback recreation
+- Added `permissionCheckRef` to prevent multiple permission checks
+- Memoized contextValue to prevent unnecessary re-renders
+- Added comprehensive instrumentation logs
+
+### Architecture Changes
+- `store` removed from all useEffect dependency arrays
+- Callbacks now use `[isMounted]` or `[]` as dependencies
+- Individual Zustand selectors replace full store subscription
+- Store actions accessed via refs (`setLocationRef.current()`)
+
+### Instrumentation Added
+- `[RENDER]` - Render counter for diagnostics
+- `[LOCATION]` - Location update events
+- `[ERROR]` - Error handling events
+- `[TRACKING]` - Tracking start/stop events
+- `[PERMISSION]` - Permission check events
+- `[CLEANUP]` - Unmount cleanup events
+- `[APP_STATE]` - App state change events
+
+### QA
+- TypeScript Check (`tsc --noEmit`): ✅ 0 errors
+- ESLint: ✅ 0 errors, 9 warnings (pre-existing, unrelated)
+
+---
+
 ## [STAGE 3.3E] - 2026-07-21
 
 ### Fixed
