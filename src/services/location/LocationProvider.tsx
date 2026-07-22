@@ -117,6 +117,9 @@ export function LocationProvider({
   // STAGE 3.3F: Track initial permission check completion
   const permissionCheckRef = useRef(false);
   
+  // STAGE 3.3I: Track if startTracking is in progress to prevent concurrent calls
+  const isStartingTrackingRef = useRef(false);
+  
   const appState = useAppState();
   const movementDetectorRef = useRef(createMovementDetector());
 
@@ -264,6 +267,14 @@ export function LocationProvider({
       console.log(`[GPS Provider ${getTimestamp()}] [TRACKING] startTracking() CALLED`);
     }
 
+    // STAGE 3.3I: Prevent concurrent calls using ref
+    if (isStartingTrackingRef.current) {
+      if (DEBUG_GPS) {
+        console.log(`[GPS Provider ${getTimestamp()}] [TRACKING] Already starting tracking, returning early`);
+      }
+      return;
+    }
+
     // Get current state
     const currentState = useLocationStore.getState();
     
@@ -273,6 +284,9 @@ export function LocationProvider({
       }
       return;
     }
+
+    // STAGE 3.3I: Mark as starting BEFORE setting state
+    isStartingTrackingRef.current = true;
 
     if (DEBUG_GPS) {
       console.log(`[GPS Provider ${getTimestamp()}] [TRACKING] Setting tracking state...`);
@@ -302,21 +316,14 @@ export function LocationProvider({
       if (DEBUG_GPS) {
         console.log(`[GPS Provider ${getTimestamp()}] [TRACKING] Error starting updates:`, error);
       }
+      // STAGE 3.3I: Reset flag on error
+      isStartingTrackingRef.current = false;
     }
-
-    // Also request immediate location for faster first fix
-    locationService.getCurrentLocation({enableHighAccuracy})
-      .then(handleLocationUpdate)
-      .catch((_error) => {
-        if (DEBUG_GPS) {
-          console.log(`[GPS Provider ${getTimestamp()}] [TRACKING] Immediate location failed`);
-        }
-      });
       
     if (DEBUG_GPS) {
       console.log(`[GPS Provider ${getTimestamp()}] [TRACKING] startTracking() complete`);
     }
-  }, [handleLocationUpdate, handleLocationError, enableHighAccuracy, distanceFilter, interval, isMounted]);
+  }, [handleLocationUpdate, handleLocationError, enableHighAccuracy, distanceFilter, interval, isMounted, isStartingTrackingRef]);
 
   // STAGE 3.3F: Stop tracking
   const stopTracking = useCallback(() => {
@@ -327,6 +334,9 @@ export function LocationProvider({
     locationService.stopLocationUpdates();
     setIsTrackingRef.current(false);
     setGpsStatusRef.current('inactive');
+    
+    // STAGE 3.3I: Reset starting tracking flag
+    isStartingTrackingRef.current = false;
     
     if (DEBUG_GPS) {
       console.log(`[GPS Provider ${getTimestamp()}] [TRACKING] stopTracking() complete`);

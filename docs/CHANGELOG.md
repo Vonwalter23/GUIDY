@@ -9,6 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [STAGE 3.3I] - 2026-07-22
+
+### Fixed
+- **Infinite loop of startTracking() calls** causing crash
+- Added `isStartingTrackingRef` to prevent concurrent `startTracking()` calls
+- Removed redundant `getCurrentLocation()` call after starting tracking
+
+### Root Cause
+- `startTracking()` was being called multiple times in quick succession
+- Each call started a new tracking session, causing callback duplication
+- The Zustand `getState()` returned stale values, not detecting the in-progress state
+
+### Changes
+- Added `isStartingTrackingRef` flag to prevent concurrent calls
+- Removed redundant `locationService.getCurrentLocation()` in `startTracking()`
+- Reset flag on `stopTracking()` and on error
+
+### Files Changed
+- `src/services/location/LocationProvider.tsx`
+
+---
+
 ## [STAGE 3.3H] - 2026-07-22
 
 ### Fixed
