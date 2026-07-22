@@ -9,19 +9,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [STAGE 3.3H] - 2026-07-22
+
+### Fixed
+- **Callback invoked multiple times** causing SIGABRT crash
+- Removed duplicate event emission in onLocationResult
+- Now using only callback OR event, not both
+
+### Root Cause
+- The callback was being invoked by BOTH:
+  1. Direct callback from native module
+  2. Event listener for GuidyLocationUpdate
+- This caused "Callback arg cannot be called more than once" crash
+
+### Files Changed
+- `android/app/src/main/java/com/guidy/location/GuidyLocationModule.kt`
+
+---
+
 ## [STAGE 3.3G] - 2026-07-22
 
 ### Fixed
 - **ObjectAlreadyConsumedException: Map already consumed** in GuidyLocationModule.kt
 - Created separate WritableMap instances for callback and event
-- Each location update now creates fresh map objects to avoid reuse
 
 ### Root Cause
 - WritableNativeMap can only be used once in React Native bridge
-- The same map was being passed to both callback and event, causing crash
-
-### Files Changed
-- `android/app/src/main/java/com/guidy/location/GuidyLocationModule.kt` (onLocationResult)
 
 ---
 
