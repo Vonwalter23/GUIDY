@@ -120,6 +120,9 @@ export function LocationProvider({
   // STAGE 3.3I: Track if startTracking is in progress to prevent concurrent calls
   const isStartingTrackingRef = useRef(false);
   
+  // STAGE 3.3J: Track last location timestamp to prevent duplicate processing
+  const lastLocationTimestampRef = useRef(0);
+  
   const appState = useAppState();
   const movementDetectorRef = useRef(createMovementDetector());
 
@@ -173,8 +176,20 @@ export function LocationProvider({
             lat: location.latitude.toFixed(6),
             lng: location.longitude.toFixed(6),
             accuracy: location.accuracy,
+            timestamp: location.timestamp,
           });
         }
+
+        // STAGE 3.3J: Prevent duplicate processing of the same location
+        // React Native callbacks can be invoked multiple times for the same data
+        const locationTimestamp = location.timestamp || 0;
+        if (locationTimestamp > 0 && locationTimestamp === lastLocationTimestampRef.current) {
+          if (DEBUG_GPS) {
+            console.log(`[GPS Provider ${getTimestamp()}] [LOCATION] Duplicate location ignored, timestamp: ${locationTimestamp}`);
+          }
+          return;
+        }
+        lastLocationTimestampRef.current = locationTimestamp;
 
         // Get current state using Zustand getState (not subscription)
         const currentState = useLocationStore.getState();

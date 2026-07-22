@@ -9,6 +9,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [STAGE 3.3J] - 2026-07-22
+
+### Fixed
+- **PROBLEMA 1**: App no navegaba al mapa después de otorgar permisos
+- **PROBLEMA 2**: Crash "Callback arg cannot be called more than once"
+
+### Root Cause Analysis
+
+**Problema 1 - Navegación:**
+- El `useEffect` en `RecorridoScreen.tsx` tenía `startTracking` como dependencia
+- Esto causaba re-ejecuciones cuando `startTracking` se recreaba
+- El flujo de permisos no esperaba correctamente
+
+**Problema 2 - Crash:**
+- El callback de ubicación se procesaba múltiples veces
+- El `useEffect` en `RecorridoScreen` se ejecutaba múltiples veces
+- Causaba múltiples inicializaciones de tracking
+
+### Changes Applied
+
+1. **RecorridoScreen.tsx:**
+   - Agregado `trackingStartedRef` para evitar múltiples llamadas a `startTracking()`
+   - Removido `startTracking` de las dependencias del `useEffect`
+   - El ref se resetea cuando `isTracking` cambia a `false`
+
+2. **LocationProvider.tsx:**
+   - Agregado `lastLocationTimestampRef` para prevenir procesamiento duplicado
+   - Verificación de timestamp de ubicación antes de procesar
+   - Si la misma ubicación llega dos veces (mismo timestamp), se ignora
+
+### Evidence from Crash Log
+```
+PID: 16542
+Time: 11:04:10
+Signal: SIGABRT (6)
+Abort message: 'Callback arg cannot be called more than once'
+Backtrace: JCxxCallbackImpl::invoke
+```
+
+### Files Changed
+- `src/screens/RecorridoScreen.tsx`
+- `src/services/location/LocationProvider.tsx`
+
+---
+
 ## [STAGE 3.3I] - 2026-07-22
 
 ### Fixed

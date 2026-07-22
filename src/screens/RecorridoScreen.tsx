@@ -60,12 +60,21 @@ function RecorridoScreen({}: Props): React.JSX.Element {
   const screenHeight = Dimensions.get('window').height;
   const mapHeight = screenHeight * 0.45; // 45% of screen for map
 
-  // Start tracking when permission is granted
+  // STAGE 3.3J: Start tracking when permission is granted
+  // Using useRef to track if tracking has been started to prevent multiple calls
+  const trackingStartedRef = React.useRef(false);
+  
   useEffect(() => {
-    if (permissionStatus === 'granted' && !isTracking) {
+    // Only start tracking once when permission is granted
+    if (permissionStatus === 'granted' && !isTracking && !trackingStartedRef.current) {
+      trackingStartedRef.current = true;
       startTracking();
     }
-  }, [permissionStatus, isTracking, startTracking]);
+    // Reset the ref when tracking stops
+    if (!isTracking) {
+      trackingStartedRef.current = false;
+    }
+  }, [permissionStatus, isTracking]);
 
   // Handle permission request with better UX
   const handlePermissionRequest = useCallback(async () => {
