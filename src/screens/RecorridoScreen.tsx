@@ -25,7 +25,6 @@ import {
   formatSpeed,
   formatLastUpdate,
   openAppSettings,
-  requestLocationPermission,
 } from '../services/location';
 import {OpenStreetMap} from '../components';
 import {useMap} from '../services/maps';
@@ -47,6 +46,7 @@ function RecorridoScreen({}: Props): React.JSX.Element {
     isTracking,
     error,
     lastUpdate,
+    requestPermission,  // STAGE 3.4C: Added - updates Zustand store
     startTracking,
     stopTracking,
   } = useLocation();
@@ -78,18 +78,17 @@ function RecorridoScreen({}: Props): React.JSX.Element {
     }
   }, [permissionStatus, isTracking, startTracking]);
 
-  // Handle permission request with better UX
+  // STAGE 3.4C: Handle permission request using context function
+  // This updates Zustand store so component re-renders correctly
   const handlePermissionRequest = useCallback(async () => {
-    const result = await requestLocationPermission();
-    if (result.status === 'denied') {
-      // Show rationale - user can try again
-      console.log('Permission denied, user can try again');
-    } else if (result.status === 'blocked') {
-      // Open settings for permanent denial
-      openAppSettings();
+    const result = await requestPermission();
+    if (!result.granted) {
+      if (result.status === 'blocked') {
+        openAppSettings();
+      }
     }
     // Permission granted will trigger useEffect to start tracking
-  }, []);
+  }, [requestPermission]);
 
   const getGpsStatusColor = () => {
     switch (gpsStatus) {
