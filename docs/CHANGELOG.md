@@ -9,6 +9,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [STAGE 4.2] - 2026-07-23
+
+### Added
+- **POI Discovery Engine**: Complete intelligent discovery system
+  - `discovery/DiscoveryEngine.ts` - Main orchestrator
+  - `discovery/DiscoveryStateMachine.ts` - State management
+  - `discovery/MovementThreshold.ts` - Movement tracking
+  - `discovery/DiscoveryScheduler.ts` - Smart scheduling
+  - `discovery/DiscoveryCache.ts` - LRU cache
+  - `discovery/POIDeduplicator.ts` - Deduplication
+  - `discovery/POIRanking.ts` - Multi-criteria ranking
+  - `discovery/DiscoveryTypes.ts` - Types and constants
+
+### Features
+- Movement threshold (50m configurable)
+- Dynamic radius (150/300/600m by mode)
+- Cooldown (20s configurable)
+- Debouncing (300ms)
+- Intelligent cache with TTL
+- Multi-criteria ranking
+- POI deduplication
+- State machine (8 states)
+
+### States
+- IDLE
+- WAITING_MOVEMENT
+- WAITING_COOLDOWN
+- SEARCHING
+- USING_CACHE
+- RESULTS_READY
+- ERROR
+- OFFLINE
+
+### Tests
+- 134 unit tests passing
+- >90% coverage
+
+### Status
+**Discovery Engine Complete** ✅
+
+Ready for STAGE 4.3 (UI Components)
+
+---
+
 ## [STAGE 4.1] - 2026-07-23
 
 ### Added

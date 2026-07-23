@@ -2,7 +2,7 @@
  * GUIDY - POI Services
  * Public API for POI functionality
  * 
- * STAGE 4.1: POI Datasource Layer
+ * STAGE 4.2: POI Discovery Engine
  */
 
 // Types
@@ -42,6 +42,9 @@ export { BasePOIDatasource } from './POIDatasource';
 
 // Datasources (STAGE 4.1)
 export * from './datasources';
+
+// Discovery Engine (STAGE 4.2)
+export * from './discovery';
 
 // Engine
 export { poiEngine, POIEngine } from './POIEngine';
