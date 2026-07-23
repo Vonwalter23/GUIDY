@@ -93,7 +93,16 @@ export class POIRanking {
    * Rank and sort POIs
    */
   rank(pois: POI[]): POI[] {
+    console.log(`[RANKING] ============================================`);
+    console.log(`[RANKING] Ranking POIs...`);
+    console.log(`[RANKING] Input POIs: ${pois.length}`);
+    console.log(`[RANKING] Weights: distance=${this.weights.distance}, relevance=${this.weights.relevance}, quality=${this.weights.quality}, category=${this.weights.category}`);
+    console.log(`[RANKING] Movement mode: ${this.movementMode}`);
+    console.log(`[RANKING] User location: (${this.userLatitude.toFixed(4)}, ${this.userLongitude.toFixed(4)})`);
+    
     if (pois.length === 0) {
+      console.log(`[RANKING] No POIs to rank`);
+      console.log(`[RANKING] ============================================`);
       return [];
     }
 
@@ -105,7 +114,22 @@ export class POIRanking {
     // Sort by score descending
     scored.sort((a, b) => b.score - a.score);
 
-    return scored.map(item => item.poi);
+    const result = scored.map(item => item.poi);
+    
+    console.log(`[RANKING] Output POIs: ${result.length}`);
+    if (result.length > 0) {
+      console.log(`[RANKING] Top 3 POIs:`);
+      result.slice(0, 3).forEach((poi, index) => {
+        const scoredPoi = scored[index];
+        console.log(`[RANKING]   ${index + 1}. ${poi.name} (${poi.category}/${poi.subcategory}) - score: ${scoredPoi.score.toFixed(3)}, distance: ${Math.round(poi.distance || 0)}m`);
+      });
+      if (result.length > 3) {
+        console.log(`[RANKING]   ... and ${result.length - 3} more`);
+      }
+    }
+    console.log(`[RANKING] ============================================`);
+
+    return result;
   }
 
   /**

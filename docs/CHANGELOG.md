@@ -9,6 +9,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [STAGE 4.4B] - 2026-07-23
+
+### Critical Fix
+- **OverpassDatasource Registration**: Fixed datasource not being registered in Repository
+
+### Problem Found
+- `POIOrchestrator.initialize()` did not register `OverpassDatasource` in `poiRepository`
+- All searches silently failed because Repository's datasource Map was empty
+
+### Files Changed
+| File | Change |
+|------|--------|
+| `src/services/poi/POIOrchestrator.ts` | Added datasource registration in initialize() |
+| `src/services/poi/POIRepository.ts` | Enhanced logging with structured output |
+| `src/services/poi/datasources/OverpassDatasource.ts` | Enhanced HTTP and parser logging |
+| `src/services/poi/discovery/POIRanking.ts` | Added ranking logs |
+| `src/services/poi/discovery/POIDeduplicator.ts` | Added validation and dedup logs |
+
+### Logging System
+- `[ORCHESTRATOR]` - Orchestrator lifecycle
+- `[REPOSITORY]` - Repository queries and datasource registration
+- `[OVERPASS]` - HTTP request/response
+- `[PARSER]` - Element parsing
+- `[RANKING]` - POI scoring
+- `[DEDUP]` - Validation and deduplication
+- `[SESSION]` - Session management
+- `[MAP]` - Marker rendering
+
+### Pipeline Now Complete
+```
+GPS → Location Engine → POIOrchestratorProvider → POIOrchestrator → DiscoveryEngine → POIRepository → OverpassDatasource → Overpass API → Parser → Ranking → Deduplication → Session → Store → OpenStreetMap → Markers
+```
+
+### Documentation Created
+- `docs/STAGE_4_4B_PIPELINE_CERTIFICATION.md`
+- `docs/STAGE_4_4B_FORENSIC_REPORT.md`
+- `docs/STAGE_4_4B_AUDIT.md`
+
+### Tests
+- 318 tests passing (unchanged)
+
+### Status
+**Pipeline Ready for Physical Validation** ✅
+
+---
+
 ## [STAGE 4.4A] - 2026-07-23
 
 ### Critical Fix

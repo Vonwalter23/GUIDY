@@ -78,31 +78,47 @@ class POIRepository {
    * Search POIs using configured sources
    */
   async searchPOIs(options: POISearchOptions): Promise<POI[]> {
+    console.log(`[REPOSITORY] ============================================`);
+    console.log(`[REPOSITORY] SEARCH START`);
+    console.log(`[REPOSITORY] Location: ${options.latitude.toFixed(6)}, ${options.longitude.toFixed(6)}`);
+    console.log(`[REPOSITORY] Radius: ${options.radius}m`);
+    console.log(`[REPOSITORY] Limit: ${options.limit || 'default'}`);
+    console.log(`[REPOSITORY] Default source: ${this.defaultSource}`);
+    console.log(`[REPOSITORY] Fallback sources: ${this.fallbackSources.join(', ') || 'none'}`);
+    console.log(`[REPOSITORY] Registered datasources: ${Array.from(this.datasources.keys()).join(', ')}`);
+    console.log(`[REPOSITORY] ============================================`);
+    
     const sources = [this.defaultSource, ...this.fallbackSources];
     
     for (const source of sources) {
       const datasource = this.datasources.get(source);
       
       if (!datasource) {
-        console.log(`[POI REPO] Datasource not registered: ${source}`);
+        console.log(`[REPOSITORY] Datasource not registered: ${source}`);
         continue;
       }
       
       try {
-        console.log(`[POI REPO] Searching with source: ${source}`);
+        console.log(`[REPOSITORY] Query started with source: ${source}`);
         const pois = await datasource.search(options);
         
         if (pois.length > 0) {
-          console.log(`[POI REPO] Found ${pois.length} POIs from ${source}`);
+          console.log(`[REPOSITORY] Found ${pois.length} POIs from ${source}`);
+          console.log(`[REPOSITORY] ============================================`);
+          console.log(`[REPOSITORY] SEARCH END - SUCCESS`);
+          console.log(`[REPOSITORY] ============================================`);
           return this.enrichPOIs(pois, options.latitude, options.longitude);
         }
         
-        console.log(`[POI REPO] No POIs from ${source}, trying next source...`);
+        console.log(`[REPOSITORY] No POIs from ${source}, trying next source...`);
       } catch (error) {
-        console.error(`[POI REPO] Error from ${source}:`, error);
+        console.error(`[REPOSITORY] Error from ${source}:`, error);
         
         // If last source, throw error
         if (source === sources[sources.length - 1]) {
+          console.log(`[REPOSITORY] ============================================`);
+          console.log(`[REPOSITORY] SEARCH END - ALL SOURCES FAILED`);
+          console.log(`[REPOSITORY] ============================================`);
           throw new POIRepositoryError(
             POIErrorCode.SOURCE_UNAVAILABLE,
             `All sources failed. Last error from ${source}: ${error}`
@@ -111,6 +127,9 @@ class POIRepository {
       }
     }
     
+    console.log(`[REPOSITORY] ============================================`);
+    console.log(`[REPOSITORY] SEARCH END - NO RESULTS`);
+    console.log(`[REPOSITORY] ============================================`);
     throw new POIRepositoryError(
       POIErrorCode.NO_RESULTS,
       'No POIs found from any source'

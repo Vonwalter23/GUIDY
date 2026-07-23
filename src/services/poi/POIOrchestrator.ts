@@ -18,6 +18,8 @@ import { MovementMode } from './discovery/DiscoveryTypes';
 import { usePOIStore } from './usePOIStore';
 import { SessionEventType } from './session/POISessionEvents';
 import { POILifecycleState } from './session/POISessionTypes';
+import { OverpassDatasource } from './datasources';
+import { poiRepository } from './POIRepository';
 
 // ============================================================================
 // LOGGING SYSTEM
@@ -185,6 +187,12 @@ class POIOrchestrator {
     log(LogCategory.ORCHESTRATOR, 'Initializing POI Orchestrator...');
 
     try {
+      // Register Overpass datasource with repository
+      log(LogCategory.REPOSITORY, 'Registering OverpassDatasource...');
+      const overpassDatasource = new OverpassDatasource();
+      poiRepository.registerDatasource('overpass', overpassDatasource);
+      log(LogCategory.REPOSITORY, 'OverpassDatasource registered successfully');
+      
       // Initialize Discovery Engine
       await discoveryEngine.initialize();
       

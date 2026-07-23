@@ -215,11 +215,33 @@ export class OverpassDatasource extends BasePOIDatasource {
     // Build Overpass query
     const query = this.buildSearchQuery(options.latitude, options.longitude, radius, limit);
     
+    console.log(`[OVERPASS] ============================================`);
+    console.log(`[OVERPASS] SEARCH START`);
+    console.log(`[OVERPASS] Location: ${options.latitude.toFixed(6)}, ${options.longitude.toFixed(6)}`);
+    console.log(`[OVERPASS] Radius: ${radius}m`);
+    console.log(`[OVERPASS] Limit: ${limit}`);
+    console.log(`[OVERPASS] URL: ${this.overpassConfig.baseUrl}`);
+    console.log(`[OVERPASS] Timeout: ${this.overpassConfig.timeout}ms`);
+    console.log(`[OVERPASS] ============================================`);
+    
+    const startTime = Date.now();
+    
     try {
       const response = await this.executeQuery(query);
-      return this.parseResponse(response, options.latitude, options.longitude);
+      const pois = this.parseResponse(response, options.latitude, options.longitude);
+      const duration = Date.now() - startTime;
+      
+      console.log(`[OVERPASS] ============================================`);
+      console.log(`[OVERPASS] SEARCH END`);
+      console.log(`[OVERPASS] Elements received: ${response.elements.length}`);
+      console.log(`[OVERPASS] POIs parsed: ${pois.length}`);
+      console.log(`[OVERPASS] Duration: ${duration}ms`);
+      console.log(`[OVERPASS] ============================================`);
+      
+      return pois;
     } catch (error) {
-      console.error('[OVERPASS] Search error:', error);
+      const duration = Date.now() - startTime;
+      console.error(`[OVERPASS] Search error after ${duration}ms:`, error);
       throw this.handleError(error);
     }
   }
@@ -357,11 +379,19 @@ export class OverpassDatasource extends BasePOIDatasource {
     const timeSinceLastRequest = now - this.lastRequestTime;
     if (timeSinceLastRequest < this.overpassConfig.rateLimitDelay) {
       const delayMs = this.overpassConfig.rateLimitDelay - timeSinceLastRequest;
+      console.log(`[OVERPASS] Rate limiting: waiting ${delayMs}ms`);
       await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
     }
     
     this.lastRequestTime = Date.now();
     this.pendingRequests = new AbortController();
+    
+    console.log(`[OVERPASS] HTTP Request starting...`);
+    console.log(`[OVERPASS] Method: POST`);
+    console.log(`[OVERPASS] URL: ${this.overpassConfig.baseUrl}`);
+    console.log(`[OVERPASS] Query length: ${query.length} chars`);
+    
+    const requestStartTime = Date.now();
     
     try {
       const response = await this.networkClient.post<OverpassResponse>(
@@ -369,6 +399,13 @@ export class OverpassDatasource extends BasePOIDatasource {
         { data: query },
         { method: 'POST' } as RequestInit
       );
+      
+      const requestDuration = Date.now() - requestStartTime;
+      
+      console.log(`[OVERPASS] HTTP Response received`);
+      console.log(`[OVERPASS] Status: ${response.status || 200}`);
+      console.log(`[OVERPASS] Duration: ${requestDuration}ms`);
+      console.log(`[OVERPASS] Elements: ${response.data?.elements?.length || 0}`);
       
       return response.data;
     } finally {
@@ -384,10 +421,39 @@ export class OverpassDatasource extends BasePOIDatasource {
     userLat: number,
     userLng: number
   ): POI[] {
-    return response.elements
-      .filter(element => element.type === 'node' || element.type === 'way')
+    const totalElements = response.elements.length;
+    
+    console.log(`[PARSER] ============================================`);
+    console.log(`[PARSER] Parsing response...`);
+    console.log(`[PARSER] Total elements received: ${totalElements}`);
+    
+    const validElements = response.elements
+      .filter(element => element.type === 'node' || element.type === 'way');
+    
+    console.log(`[PARSER] Valid elements (node/way): ${validElements.length}`);
+    console.log(`[PARSER] Discarded elements: ${totalElements - validElements.length}`);
+    
+    const pois = validElements
       .map(element => this.elementToPOI(element, userLat, userLng))
       .filter((poi): poi is POI => poi !== null);
+    
+    console.log(`[PARSER] POIs successfully parsed: ${pois.length}`);
+    console.log(`[PARSER] POIs discarded (null): ${validElements.length - pois.length}`);
+    
+    // Show sample POIs
+    if (pois.length > 0) {
+      console.log(`[PARSER] Sample POIs:`);
+      pois.slice(0, 3).forEach((poi, index) => {
+        console.log(`[PARSER]   ${index + 1}. ${poi.name} (${poi.category}/${poi.subcategory}) - ${Math.round(poi.distance)}m away`);
+      });
+      if (pois.length > 3) {
+        console.log(`[PARSER]   ... and ${pois.length - 3} more`);
+      }
+    }
+    
+    console.log(`[PARSER] ============================================`);
+    
+    return pois;
   }
 
   /**

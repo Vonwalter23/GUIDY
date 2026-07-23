@@ -39,11 +39,25 @@ export class POIDeduplicator {
    * Deduplicate POIs
    */
   deduplicate(pois: POI[]): POI[] {
+    console.log(`[DEDUP] ============================================`);
+    console.log(`[DEDUP] Deduplicating POIs...`);
+    console.log(`[DEDUP] Input POIs: ${pois.length}`);
+    console.log(`[DEDUP] Coordinate threshold: ${this.options.coordinateThreshold}m`);
+    console.log(`[DEDUP] Name similarity threshold: ${this.options.nameSimilarityThreshold * 100}%`);
+    
     if (pois.length <= 1) {
+      console.log(`[DEDUP] Only ${pois.length} POI(s), no deduplication needed`);
+      console.log(`[DEDUP] Output POIs: ${pois.length}`);
+      console.log(`[DEDUP] ============================================`);
       return pois;
     }
 
     const validated = this.validateAll(pois);
+    const discardedByValidation = pois.length - validated.length;
+    
+    console.log(`[DEDUP] After validation: ${validated.length}`);
+    console.log(`[DEDUP] Discarded by validation: ${discardedByValidation}`);
+    
     const uniquePOIs: POI[] = [];
     const seenKeys = new Set<string>();
 
@@ -56,6 +70,11 @@ export class POIDeduplicator {
       }
     }
 
+    const duplicatesRemoved = validated.length - uniquePOIs.length;
+    console.log(`[DEDUP] Duplicates removed: ${duplicatesRemoved}`);
+    console.log(`[DEDUP] Output POIs: ${uniquePOIs.length}`);
+    console.log(`[DEDUP] ============================================`);
+
     return uniquePOIs;
   }
 
@@ -63,7 +82,18 @@ export class POIDeduplicator {
    * Validate all POIs
    */
   validateAll(pois: POI[]): POI[] {
-    return pois.filter(poi => this.validate(poi).valid);
+    const results = pois.map(poi => ({ poi, result: this.validate(poi) }));
+    const valid = results.filter(r => r.result.valid).map(r => r.poi);
+    const invalid = results.filter(r => !r.result.valid);
+    
+    if (invalid.length > 0) {
+      console.log(`[DEDUP] Validation discarded POIs:`);
+      invalid.forEach(({ poi, result }) => {
+        console.log(`[DEDUP]   - ${poi.name || poi.id}: ${result.reason}`);
+      });
+    }
+    
+    return valid;
   }
 
   /**
