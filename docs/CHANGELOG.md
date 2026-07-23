@@ -9,6 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [STAGE 3.4C] - 2026-07-23
+
+### Fixed
+- **Permission Flow**: RecorridoScreen ahora usa `requestPermission` del hook `useLocation()`
+- El flujo de permisos ahora actualiza Zustand store correctamente
+
+### Root Cause
+`RecorridoScreen` importaba `requestLocationPermission` directamente de `LocationPermissions.ts`
+que NO actualizaba el store de Zustand. El hook `useLocation()` tiene su propia función
+`requestPermission()` que SÍ actualiza el store.
+
+### Files Changed
+- `src/screens/RecorridoScreen.tsx`
+
+### Build
+- TypeScript: 0 errors
+- ESLint: 0 errors, 7 warnings
+- Tests: 47 passed, 1 failed (pre-existente)
+
+---
+
 ## [STAGE 3.4B] - 2026-07-22
 
 ### Added
