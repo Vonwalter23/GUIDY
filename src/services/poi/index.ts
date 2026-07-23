@@ -2,7 +2,7 @@
  * GUIDY - POI Services
  * Public API for POI functionality
  * 
- * STAGE 4.2: POI Discovery Engine
+ * STAGE 4.3: POI Session Manager
  */
 
 // Types
@@ -45,6 +45,9 @@ export * from './datasources';
 
 // Discovery Engine (STAGE 4.2)
 export * from './discovery';
+
+// Session Manager (STAGE 4.3)
+export * from './session';
 
 // Engine
 export { poiEngine, POIEngine } from './POIEngine';
