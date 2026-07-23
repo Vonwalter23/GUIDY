@@ -10,6 +10,7 @@ import React, {useRef, useEffect, useCallback, useState} from 'react';
 import {StyleSheet, View} from 'react-native';
 import {WebView} from 'react-native-webview';
 import {useMap} from '../services/maps';
+import {usePOIs} from '../services/poi';
 
 interface OpenStreetMapProps {
   style?: object;
@@ -36,11 +37,29 @@ const MAP_HTML = `
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body, #map { width: 100%; height: 100%; overflow: hidden; }
     .leaflet-control-attribution { font-size: 8px !important; }
+    .poi-marker { text-align: center; line-height: 1; }
+    .poi-popup { min-width: 150px; }
+    .poi-popup h4 { margin: 0 0 5px 0; font-size: 14px; }
+    .poi-popup p { margin: 2px 0; font-size: 12px; color: #666; }
   </style>
 </head>
 <body>
   <div id="map"></div>
   <script>
+    // POI marker colors
+    var POI_COLORS = {
+      RESTAURANT: '#FF5722',
+      CAFE: '#795548',
+      SHOPPING: '#9C27B0',
+      ATTRACTION: '#E91E63',
+      HOTEL: '#3F51B5',
+      TRANSPORT: '#009688',
+      ATM: '#4CAF50',
+      PHARMACY: '#00BCD4',
+      HOSPITAL: '#F44336',
+      default: '#607D8B'
+    };
+
     // Initialize map centered on Trelew, Argentina
     var map = L.map('map', {
       center: [-43.3001, -65.1028],
@@ -57,6 +76,9 @@ const MAP_HTML = `
 
     // User marker
     var userMarker = null;
+
+    // POI markers layer
+    var poiLayer = L.layerGroup().addTo(map);
 
     // Function to update user location
     function updateUserLocation(lat, lng) {
@@ -78,6 +100,69 @@ const MAP_HTML = `
         type: 'locationUpdate',
         latitude: lat,
         longitude: lng
+      }));
+    }
+
+    // Function to get color for POI category
+    function getPOIColor(category) {
+      if (!category) return POI_COLORS.default;
+      var cat = category.toUpperCase();
+      return POI_COLORS[cat] || POI_COLORS.default;
+    }
+
+    // Function to create POI marker icon
+    function createPOIIcon(category) {
+      var color = getPOIColor(category);
+      return L.divIcon({
+        className: 'poi-marker',
+        html: '<div style="background-color: ' + color + '; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;"><span style="color: white; font-size: 12px; font-weight: bold;">P</span></div>',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
+        popupAnchor: [0, -12]
+      });
+    }
+
+    // Function to update POI markers
+    function updatePOIMarkers(pois) {
+      // Clear existing markers
+      poiLayer.clearLayers();
+      
+      if (!pois || pois.length === 0) {
+        console.log('[MAP] No POIs to display');
+        return;
+      }
+      
+      console.log('[MAP] Adding ' + pois.length + ' POI markers');
+      
+      pois.forEach(function(poi) {
+        if (poi.latitude && poi.longitude) {
+          var marker = L.marker([poi.latitude, poi.longitude], {
+            icon: createPOIIcon(poi.category)
+          });
+          
+          // Create popup content
+          var popupContent = '<div class="poi-popup">';
+          popupContent += '<h4>' + (poi.name || 'Unknown POI') + '</h4>';
+          if (poi.category) {
+            popupContent += '<p>Category: ' + poi.category + '</p>';
+          }
+          if (poi.subcategory) {
+            popupContent += '<p>Type: ' + poi.subcategory + '</p>';
+          }
+          if (poi.distance !== undefined) {
+            popupContent += '<p>Distance: ' + Math.round(poi.distance) + 'm</p>';
+          }
+          popupContent += '</div>';
+          
+          marker.bindPopup(popupContent);
+          poiLayer.addLayer(marker);
+        }
+      });
+      
+      // Send update to React Native
+      window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'poiMarkersUpdated',
+        count: pois.length
       }));
     }
 
@@ -121,6 +206,8 @@ const MAP_HTML = `
         centerOnUser(data.latitude, data.longitude, data.animate || false);
       } else if (data.type === 'setRegion') {
         map.setView([data.latitude, data.longitude], data.zoom || 15, {animate: data.animate || false});
+      } else if (data.type === 'updatePOIs') {
+        updatePOIMarkers(data.pois);
       }
     });
   </script>
@@ -146,6 +233,9 @@ export function OpenStreetMap({
     isFollowingUser,
     setRegion,
   } = useMap();
+  
+  // Get POIs from POIStore
+  const pois = usePOIs();
   
   const [isMapReady, setIsMapReady] = useState(false);
 
@@ -211,6 +301,25 @@ export function OpenStreetMap({
       }
     }
   }, [userMarker, isMapReady, isFollowingUser]);
+
+  // Update POI markers when pois change
+  useEffect(() => {
+    if (webViewRef.current && isMapReady) {
+      console.log('[OPENSTREETMAP] Sending POIs to map:', pois.length, 'POIs');
+      webViewRef.current.postMessage(JSON.stringify({
+        type: 'updatePOIs',
+        pois: pois.map(poi => ({
+          id: poi.id,
+          name: poi.name,
+          latitude: poi.latitude,
+          longitude: poi.longitude,
+          category: poi.category,
+          subcategory: poi.subcategory,
+          distance: poi.distance,
+        })),
+      }));
+    }
+  }, [pois, isMapReady]);
 
   // Handle WebView load
   const handleLoadEnd = useCallback(() => {

@@ -15,7 +15,7 @@ import React, { createContext, useContext, useEffect, useCallback, useMemo, useR
 import type { POI } from './POITypes';
 import { poiOrchestrator, OrchestratorState } from './POIOrchestrator';
 import { useLocation } from '../location';
-import { syncPOIStoreWithStateMachine, usePOIStore } from './usePOIStore';
+import { syncPOIStoreWithStateMachine } from './usePOIStore';
 
 // Context types
 interface POIOrchestratorContextValue {
@@ -106,9 +106,6 @@ export function POIOrchestratorProvider({
     currentLocation: location,
     permissionStatus,
   } = useLocation();
-  
-  // POI Store for syncing
-  const storePOIs = usePOIStore((state) => state.pois);
   
   // Initialize orchestrator
   useEffect(() => {

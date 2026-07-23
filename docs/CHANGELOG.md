@@ -9,6 +9,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [STAGE 4.4A] - 2026-07-23
+
+### Critical Fix
+- **Pipeline Integration**: Fixed missing integration points that prevented POI discovery pipeline from executing
+
+### Problems Found
+1. `POIOrchestratorProvider` was NOT integrated in `App.tsx`
+2. `OpenStreetMap` was NOT consuming `POIStore` for POI markers
+
+### Files Changed
+| File | Change |
+|------|--------|
+| `App.tsx` | Added `POIOrchestratorProvider` wrapping `AppNavigator` |
+| `src/components/OpenStreetMap.tsx` | Added POI marker support using `usePOIs()` hook |
+
+### Changes Detail
+
+#### App.tsx
+```tsx
+<LocationProvider>
+  <MapProvider>
+    <POIOrchestratorProvider autoStart={true} autoDiscovery={true}>
+      <AppNavigator />
+    </POIOrchestratorProvider>
+  </MapProvider>
+</LocationProvider>
+```
+
+#### OpenStreetMap.tsx
+- Added `usePOIs()` hook to consume POIStore
+- Added POI marker layer to Leaflet map
+- Added `updatePOIMarkers()` function in HTML
+- Added color coding by POI category
+- Added popup with POI details (name, category, distance)
+
+### Pipeline Flow (Now Complete)
+```
+GPS → LocationEngine → POIOrchestrator → DiscoveryEngine → Repository → DatasourceFactory → OverpassDatasource → POIRanking → POIDeduplicator → POISessionManager → POIStore → OpenStreetMap (Markers) → Usuario
+```
+
+### Audit Documents Created
+- `docs/STAGE_4_4A_PIPELINE_CERTIFICATION.md`
+- `docs/STAGE_4_4A_FORENSIC_REPORT.md`
+- `docs/STAGE_4_4A_AUDIT.md`
+
+### Tests
+- 318 tests passing (POI tests unchanged)
+- ESLint: 2 errors (pre-existing in tests), 7 warnings
+
+### Build Status
+**PENDING**: JDK 21 required for Android build - not available in current environment
+
+### Next Steps
+1. Compile APK with JDK 21
+2. Physical validation testing
+3. Verify POI markers appear on map
+
+---
+
 ## [STAGE 4.4] - 2026-07-23
 
 ### Added
@@ -27,13 +86,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Pipeline Flow
 ```
-Location Engine → POIOrchestrator → DiscoveryEngine → POIRepository → OverpassDatasource
-                                     ↓
+Location Engine вҶ’ POIOrchestrator вҶ’ DiscoveryEngine вҶ’ POIRepository вҶ’ OverpassDatasource
+                                     вҶ“
                               POIRanking
-                                     ↓
+                                     вҶ“
                             POIDeduplicator
-                                     ↓
-                         POISessionManager → POIStore → UI
+                                     вҶ“
+                         POISessionManager вҶ’ POIStore вҶ’ UI
 ```
 
 ### Logging Categories
@@ -61,7 +120,7 @@ Location Engine → POIOrchestrator → DiscoveryEngine → POIRepository → Ov
 - `docs/STAGE_4_4_AUDIT.md`
 
 ### Status
-**Orchestration Complete** ✅
+**Orchestration Complete** вң…
 
 ---
 
@@ -103,7 +162,7 @@ Location Engine → POIOrchestrator → DiscoveryEngine → POIRepository → Ov
 - >90% coverage
 
 ### Status
-**Discovery Engine Complete** ✅
+**Discovery Engine Complete** вң…
 
 Ready for STAGE 4.3 (UI Components)
 
@@ -127,7 +186,7 @@ Ready for STAGE 4.3 (UI Components)
 - Automatic fallback
 
 ### Status
-**Datasource Layer Complete** ✅
+**Datasource Layer Complete** вң…
 
 Ready for STAGE 4.2 (UI Components)
 
@@ -161,15 +220,15 @@ Ready for STAGE 4.2 (UI Components)
 - Singleton Pattern
 
 ### Status
-**Architecture Phase Complete** ✅
+**Architecture Phase Complete** вң…
 
 Ready for STAGE 4.1 (Data Source Integration)
 
 ### Compliance
-- Location Engine: NOT MODIFIED ✅
-- SOLID Principles: ✅
-- TypeScript: 0 errors ✅
-- ESLint: 0 errors ✅
+- Location Engine: NOT MODIFIED вң…
+- SOLID Principles: вң…
+- TypeScript: 0 errors вң…
+- ESLint: 0 errors вң…
 
 ---
 
@@ -187,13 +246,13 @@ Ready for STAGE 4.1 (Data Source Integration)
 
 ### Verified Fixed
 - GPS Loop Disponible/No Disponible (STAGE 3.4B)
-- Navegación post-permisos (STAGE 3.4C)
+- NavegaciГіn post-permisos (STAGE 3.4C)
 - Memory leaks
 - Listeners duplicados
 - Crash callbacks reutilizados (STAGE 3.3K)
 
 ### Status
-**LOCATION ENGINE CERTIFIED AS STABLE** ✅
+**LOCATION ENGINE CERTIFIED AS STABLE** вң…
 
 Ready for STAGE 4 (POIs)
 
@@ -207,8 +266,8 @@ Ready for STAGE 4 (POIs)
 
 ### Root Cause
 `RecorridoScreen` importaba `requestLocationPermission` directamente de `LocationPermissions.ts`
-que NO actualizaba el store de Zustand. El hook `useLocation()` tiene su propia función
-`requestPermission()` que SÍ actualiza el store.
+que NO actualizaba el store de Zustand. El hook `useLocation()` tiene su propia funciГіn
+`requestPermission()` que SГҚ actualiza el store.
 
 ### Files Changed
 - `src/screens/RecorridoScreen.tsx`
@@ -223,7 +282,7 @@ que NO actualizaba el store de Zustand. El hook `useLocation()` tiene su propia 
 ## [STAGE 3.4B] - 2026-07-22
 
 ### Added
-- **LocationStateMachine**: Nueva máquina de estados como fuente única de verdad
+- **LocationStateMachine**: Nueva mГЎquina de estados como fuente Гәnica de verdad
 - **Arquitectura simplificada**: Store ahora solo guarda permiso
 
 ### Fixed
@@ -238,7 +297,7 @@ que NO actualizaba el store de Zustand. El hook `useLocation()` tiene su propia 
 
 ### State Machine States
 ```
-IDLE → REQUESTING_PERMISSION → PERMISSION_GRANTED → STARTING_LOCATION → WAITING_FIRST_FIX → TRACKING → STOPPED
+IDLE вҶ’ REQUESTING_PERMISSION вҶ’ PERMISSION_GRANTED вҶ’ STARTING_LOCATION вҶ’ WAITING_FIRST_FIX вҶ’ TRACKING вҶ’ STOPPED
 ```
 
 ### Files Changed
@@ -269,37 +328,37 @@ IDLE → REQUESTING_PERMISSION → PERMISSION_GRANTED → STARTING_LOCATION → 
 ## [STAGE 3.4A] - 2026-07-22
 
 ### Added
-- **DOCUMENTACIÓN**: Auditoría completa de máquina de estados de ubicación
+- **DOCUMENTACIГ“N**: AuditorГӯa completa de mГЎquina de estados de ubicaciГіn
 - **DIAGRAMA**: Flujo completo de estados desde usuario hasta GPS nativo
 
 ### Root Cause Analysis
 
-**Problema 1: Loop GPS Disponible ↔ No Disponible**
+**Problema 1: Loop GPS Disponible вҶ” No Disponible**
 
 - **Archivo:** `GuidyLocationModule.kt`
-- **Líneas:** 434-447
+- **LГӯneas:** 434-447
 - **Causa:** `onLocationAvailability()` solo maneja cuando disponibilidad es FALSE
 - **Falta:** No hay manejo cuando disponibilidad vuelve a TRUE
 
 ```
-onLocationAvailability(false) → gpsStatus = 'unavailable'
-onLocationAvailability(true)  → ❌ NO SE MANEJA
-→ Loop infinito entre 'active' y 'unavailable'
+onLocationAvailability(false) вҶ’ gpsStatus = 'unavailable'
+onLocationAvailability(true)  вҶ’ вқҢ NO SE MANEJA
+вҶ’ Loop infinito entre 'active' y 'unavailable'
 ```
 
-**Problema 2: Navegación fallida post-permisos**
+**Problema 2: NavegaciГіn fallida post-permisos**
 
-- **Análisis:** Flujo de código es correcto
-- **Verificación:** Requiere logs en dispositivo físico
+- **AnГЎlisis:** Flujo de cГіdigo es correcto
+- **VerificaciГіn:** Requiere logs en dispositivo fГӯsico
 - **Pendiente:** Confirmar que startTracking() se ejecuta post-permisos
 
 ### Files Added
 - `docs/STAGE_3_4A_STATE_MACHINE_AUDIT.md`
 
 ### Status
-- **AUDITORÍA COMPLETADA**
-- **ESPERANDO APROBACIÓN HUMANA**
-- **NO se implementaron fixes (STAGE de auditoría únicamente)**
+- **AUDITORГҚA COMPLETADA**
+- **ESPERANDO APROBACIГ“N HUMANA**
+- **NO se implementaron fixes (STAGE de auditorГӯa Гәnicamente)**
 
 ---
 
@@ -307,12 +366,12 @@ onLocationAvailability(true)  → ❌ NO SE MANEJA
 
 ### Fixed
 - **CONTRATO DESINCRONIZADO**: TurboModule esperaba 3 argumentos pero TypeScript pasaba 1
-- **ROOT CAUSE**: GuidyLocationModule.kt todavía tenía firma con callbacks
+- **ROOT CAUSE**: GuidyLocationModule.kt todavГӯa tenГӯa firma con callbacks
 
 ### Root Cause Analysis
 
 **El Problema:**
-El módulo nativo `GuidyLocationModule.kt` declaraba:
+El mГіdulo nativo `GuidyLocationModule.kt` declaraba:
 ```kotlin
 fun startLocationUpdates(options: ReadableMap, watchCallback: Callback, errorCallback: Callback)
 ```
@@ -330,14 +389,14 @@ TurboModule method: startLocationUpdates called with 1 arguments expected 3 argu
 ### Solution Applied
 
 1. **GuidyLocationModule.kt:**
-   - Cambió firma a `startLocationUpdates(options: ReadableMap)` (1 parámetro)
-   - Removió `pendingWatchCallbacks` y `pendingErrorCallback`
-   - Removió `safeInvokeWatchCallback()` y `safeInvokeErrorCallback()`
+   - CambiГі firma a `startLocationUpdates(options: ReadableMap)` (1 parГЎmetro)
+   - RemoviГі `pendingWatchCallbacks` y `pendingErrorCallback`
+   - RemoviГі `safeInvokeWatchCallback()` y `safeInvokeErrorCallback()`
    - Usa SOLO `sendEvent()` para errores
 
 2. **Contrato Sincronizado:**
-   - TypeScript: 1 parámetro
-   - Kotlin: 1 parámetro
+   - TypeScript: 1 parГЎmetro
+   - Kotlin: 1 parГЎmetro
    - Eventos para actualizaciones continuas
 
 ### Files Changed
@@ -354,13 +413,13 @@ TurboModule method: startLocationUpdates called with 1 arguments expected 3 argu
 ### Fixed
 - **ROOT CAUSE**: React Native callbacks have single-use semantics
 - **PROBLEMA**: App crasheaba con "Callback arg cannot be called more than once"
-- **PROBLEMA**: Navegación no funcionaba después de permisos
+- **PROBLEMA**: NavegaciГіn no funcionaba despuГ©s de permisos
 
 ### Root Cause Analysis
 
 **El Problema:**
 React Native Native Modules usan callbacks que tienen semantics de "single-use". 
-Cuando un callback nativo se invoca más de una vez, React Native crashea con SIGABRT.
+Cuando un callback nativo se invoca mГЎs de una vez, React Native crashea con SIGABRT.
 
 **Evidencia del Crash Log:**
 ```
@@ -369,24 +428,24 @@ Cuando un callback nativo se invoca más de una vez, React Native crashea con SI
 11:04:10.345 - Fatal signal 6 (SIGABRT)
 ```
 
-**Causa Raíz:**
-El módulo nativo `GuidyLocationModule.kt` estaba usando `Callback.invoke()` 
-para entregar actualizaciones de ubicación continuas. Esto viola las semantics 
+**Causa RaГӯz:**
+El mГіdulo nativo `GuidyLocationModule.kt` estaba usando `Callback.invoke()` 
+para entregar actualizaciones de ubicaciГіn continuas. Esto viola las semantics 
 de callbacks de React Native.
 
 ### Solution Applied
 
-**STAGE 3.3K: Cambió el puente JS↔Native para usar SOLO eventos**
+**STAGE 3.3K: CambiГі el puente JSвҶ”Native para usar SOLO eventos**
 
 1. **GuidyLocationModule.kt:**
-   - Removió callbacks del método `startLocationUpdates`
-   - Ahora usa `sendEvent()` para todas las actualizaciones de ubicación
-   - Implementó `LocationCallback` que envía eventos a JS
+   - RemoviГі callbacks del mГ©todo `startLocationUpdates`
+   - Ahora usa `sendEvent()` para todas las actualizaciones de ubicaciГіn
+   - ImplementГі `LocationCallback` que envГӯa eventos a JS
 
 2. **FusedLocationProvider.ts:**
-   - Actualizó interfaz para no pasar callbacks al nativo
+   - ActualizГі interfaz para no pasar callbacks al nativo
    - Listener de eventos `GuidyLocationUpdate` recibe actualizaciones
-   - Callbacks internos se invocan desde código JS, no nativo
+   - Callbacks internos se invocan desde cГіdigo JS, no nativo
 
 3. **LocationService.ts:**
    - Sin cambios necesarios - usa la misma interfaz
@@ -395,17 +454,17 @@ de callbacks de React Native.
 
 ```
 JS Layer                          Native Layer
-┌──────────────────────┐          ┌──────────────────────────┐
-│ FusedLocationProvider│          │ GuidyLocationModule.kt   │
-│                      │          │                          │
-│ startLocationUpdates │ ───────► │ startLocationUpdates()   │
-│   (no callbacks)    │          │   (sin callbacks)       │
-│                      │          │                          │
-│ Event Listeners:     │          │ onLocationResult():      │
-│ - GuidyLocationUpdate│ ◄─────── │   sendEvent()            │
-│ - GuidyLocationError │          │   (NATIVE EVENTS ONLY)   │
-│ - GuidyLocationStatus│          │                          │
-└──────────────────────┘          └──────────────────────────┘
+в”Ңв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”җ          в”Ңв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”җ
+в”Ӯ FusedLocationProviderв”Ӯ          в”Ӯ GuidyLocationModule.kt   в”Ӯ
+в”Ӯ                      в”Ӯ          в”Ӯ                          в”Ӯ
+в”Ӯ startLocationUpdates в”Ӯ в”Җв”Җв”Җв”Җв”Җв”Җв”Җв–ә в”Ӯ startLocationUpdates()   в”Ӯ
+в”Ӯ   (no callbacks)    в”Ӯ          в”Ӯ   (sin callbacks)       в”Ӯ
+в”Ӯ                      в”Ӯ          в”Ӯ                          в”Ӯ
+в”Ӯ Event Listeners:     в”Ӯ          в”Ӯ onLocationResult():      в”Ӯ
+в”Ӯ - GuidyLocationUpdateв”Ӯ в—„в”Җв”Җв”Җв”Җв”Җв”Җв”Җ в”Ӯ   sendEvent()            в”Ӯ
+в”Ӯ - GuidyLocationError в”Ӯ          в”Ӯ   (NATIVE EVENTS ONLY)   в”Ӯ
+в”Ӯ - GuidyLocationStatusв”Ӯ          в”Ӯ                          в”Ӯ
+в””в”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”ҳ          в””в”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”Җв”ҳ
 ```
 
 ### Files Changed
@@ -424,32 +483,32 @@ JS Layer                          Native Layer
 ## [STAGE 3.3J] - 2026-07-22
 
 ### Fixed
-- **PROBLEMA 1**: App no navegaba al mapa después de otorgar permisos
+- **PROBLEMA 1**: App no navegaba al mapa despuГ©s de otorgar permisos
 - **PROBLEMA 2**: Crash "Callback arg cannot be called more than once"
 
 ### Root Cause Analysis
 
-**Problema 1 - Navegación:**
-- El `useEffect` en `RecorridoScreen.tsx` tenía `startTracking` como dependencia
+**Problema 1 - NavegaciГіn:**
+- El `useEffect` en `RecorridoScreen.tsx` tenГӯa `startTracking` como dependencia
 - Esto causaba re-ejecuciones cuando `startTracking` se recreaba
 - El flujo de permisos no esperaba correctamente
 
 **Problema 2 - Crash:**
-- El callback de ubicación se procesaba múltiples veces
-- El `useEffect` en `RecorridoScreen` se ejecutaba múltiples veces
-- Causaba múltiples inicializaciones de tracking
+- El callback de ubicaciГіn se procesaba mГәltiples veces
+- El `useEffect` en `RecorridoScreen` se ejecutaba mГәltiples veces
+- Causaba mГәltiples inicializaciones de tracking
 
 ### Changes Applied
 
 1. **RecorridoScreen.tsx:**
-   - Agregado `trackingStartedRef` para evitar múltiples llamadas a `startTracking()`
+   - Agregado `trackingStartedRef` para evitar mГәltiples llamadas a `startTracking()`
    - Removido `startTracking` de las dependencias del `useEffect`
    - El ref se resetea cuando `isTracking` cambia a `false`
 
 2. **LocationProvider.tsx:**
    - Agregado `lastLocationTimestampRef` para prevenir procesamiento duplicado
-   - Verificación de timestamp de ubicación antes de procesar
-   - Si la misma ubicación llega dos veces (mismo timestamp), se ignora
+   - VerificaciГіn de timestamp de ubicaciГіn antes de procesar
+   - Si la misma ubicaciГіn llega dos veces (mismo timestamp), se ignora
 
 ### Evidence from Crash Log
 ```
@@ -543,8 +602,8 @@ Backtrace: JCxxCallbackImpl::invoke
 - `[APP_STATE]` - App state change events
 
 ### QA
-- TypeScript Check (`tsc --noEmit`): ✅ 0 errors
-- ESLint: ✅ 0 errors, 9 warnings (pre-existing, unrelated)
+- TypeScript Check (`tsc --noEmit`): вң… 0 errors
+- ESLint: вң… 0 errors, 9 warnings (pre-existing, unrelated)
 
 ---
 
@@ -564,8 +623,8 @@ Backtrace: JCxxCallbackImpl::invoke
 - Removed duplicate `isTracking()` method that caused TypeScript error
 
 ### QA
-- TypeScript Check (`tsc --noEmit`): ✅ 0 errors
-- ESLint: ✅ 0 errors, 6 warnings (pre-existing, unrelated)
+- TypeScript Check (`tsc --noEmit`): вң… 0 errors
+- ESLint: вң… 0 errors, 6 warnings (pre-existing, unrelated)
 
 ### Build
 - Debug APK: BUILD SUCCESSFUL
@@ -663,7 +722,7 @@ Backtrace: JCxxCallbackImpl::invoke
 
 ### Changed
 - RecorridoScreen now shows clear status messages:
-  - "Buscando ubicación..." when gpsStatus = 'searching'
+  - "Buscando ubicaciГіn..." when gpsStatus = 'searching'
   - "GPS Conectado" when gpsStatus = 'active'
   - Shows "..." instead of "N/A" while searching
 - LocationProvider updated:
@@ -716,7 +775,7 @@ Backtrace: JCxxCallbackImpl::invoke
   - Additional info: speed and last update time
 - Updated ConfiguracionScreen categories:
   - Cultura
-  - Gastronomía
+  - GastronomГӯa
   - Historia y Arquitectura
   - Naturaleza
   - Servicios Cercanos

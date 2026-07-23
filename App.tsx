@@ -22,6 +22,7 @@ import {lightTheme, darkTheme} from './src/theme';
 // Import providers
 import {LocationProvider} from './src/services/location';
 import {MapProvider} from './src/services/maps';
+import {POIOrchestratorProvider} from './src/services/poi';
 
 /**
  * Main App Component
@@ -40,7 +41,9 @@ function App(): React.JSX.Element {
         />
         <LocationProvider>
           <MapProvider>
-            <AppNavigator />
+            <POIOrchestratorProvider autoStart={true} autoDiscovery={true}>
+              <AppNavigator />
+            </POIOrchestratorProvider>
           </MapProvider>
         </LocationProvider>
       </PaperProvider>
