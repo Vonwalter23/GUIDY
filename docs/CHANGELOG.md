@@ -9,6 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [STAGE 4.1] - 2026-07-23
+
+### Added
+- **POI Datasource Layer**: Complete datasource infrastructure
+  - `datasources/BaseNetworkClient.ts` - Common network client
+  - `datasources/OverpassDatasource.ts` - OpenStreetMap Overpass API
+  - `datasources/DatasourceFactory.ts` - Multi-provider factory
+  - `datasources/index.ts` - Public exports
+
+### Datasource Features
+- AbortController for request cancellation
+- Configurable timeouts and retries
+- Rate limiting support
+- OSM tag to POI category mapping
+- Health checks
+- Automatic fallback
+
+### Status
+**Datasource Layer Complete** ✅
+
+Ready for STAGE 4.2 (UI Components)
+
+---
+
 ## [STAGE 4.0] - 2026-07-23
 
 ### Added
