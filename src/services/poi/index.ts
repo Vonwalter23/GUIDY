@@ -2,7 +2,7 @@
  * GUIDY - POI Services
  * Public API for POI functionality
  * 
- * STAGE 4.3: POI Session Manager
+ * STAGE 4.4: POI Engine Orchestration
  */
 
 // Types
@@ -57,6 +57,21 @@ export { poiCache, POICache } from './POICache';
 
 // Filter
 export { poiFilter, POIFilter } from './POIFilter';
+
+// Orchestrator (STAGE 4.4)
+export { poiOrchestrator, POIOrchestrator } from './POIOrchestrator';
+export type { POIOrchestratorConfig, OrchestratorState } from './POIOrchestrator';
+
+// Orchestrator Provider (STAGE 4.4)
+export {
+  POIOrchestratorProvider,
+  usePOIOrchestrator,
+  useIsOrchestratorRunning,
+  useOrchestratorState,
+  useOrchestratorStats,
+  useSessionStats,
+  useDiscovery,
+} from './POIOrchestratorProvider';
 
 // Provider
 export {
