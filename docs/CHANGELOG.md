@@ -9,6 +9,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [STAGE 3.5] - 2026-07-23
+
+### Added
+- **Location Engine Certification**: Documento completo `docs/STAGE_3_5_CERTIFICATION.md`
+
+### Certified
+- LocationProvider: 0 memory leaks, proper cleanup
+- FusedLocationProvider: Singleton, event subscriptions managed
+- GuidyLocationModule.kt: LifecycleEventListener, cleanup en destroy
+- Zustand Store: Bien estructurado
+- LocationStateMachine: Single source of truth
+
+### Verified Fixed
+- GPS Loop Disponible/No Disponible (STAGE 3.4B)
+- Navegación post-permisos (STAGE 3.4C)
+- Memory leaks
+- Listeners duplicados
+- Crash callbacks reutilizados (STAGE 3.3K)
+
+### Status
+**LOCATION ENGINE CERTIFIED AS STABLE** ✅
+
+Ready for STAGE 4 (POIs)
+
+---
+
 ## [STAGE 3.4C] - 2026-07-23
 
 ### Fixed
