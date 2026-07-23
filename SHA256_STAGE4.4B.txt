@@ -1,0 +1,29 @@
+# STAGE 4.4B - SHA256 Checksums
+
+## APK Files
+
+### Debug APK
+- File: android/app/build/outputs/apk/debug/app-debug.apk
+- SHA256: cbdf4dab7bee12481e609aa1a9a0763941227256e1cb418273fb779aaf7c7ee8
+- Size: 150,640,518 bytes (~144 MB)
+
+### Release APK
+- File: android/app/build/outputs/apk/release/app-release.apk
+- SHA256: c6dca15c81d52b0fbaefb751b31b1c1f57c6ced3055d13a673dd208457bb1460
+- Size: 66,970,155 bytes (~64 MB)
+
+## Verification
+
+```bash
+# Verify Debug APK
+sha256sum -c SHA256_STAGE4.4B.txt <<< "cbdf4dab7bee12481e609aa1a9a0763941227256e1cb418273fb779aaf7c7ee8 *android/app/build/outputs/apk/debug/app-debug.apk"
+
+# Verify Release APK
+sha256sum -c SHA256_STAGE4.4B.txt <<< "c6dca15c81d52b0fbaefb751b31b1c1f57c6ced3055d13a673dd208457bb1460 *android/app/build/outputs/apk/release/app-release.apk"
+```
+
+## Release Information
+
+- Tag: v0.0.18-STAGE4.4B
+- Release URL: https://github.com/Vonwalter23/GUIDY/releases/tag/v0.0.18-STAGE4.4B
+- Created: 2026-07-23
