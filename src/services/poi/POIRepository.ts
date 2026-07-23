@@ -1,0 +1,273 @@
+/**
+ * GUIDY - POI Repository
+ * Repository pattern for POI data access
+ * 
+ * STAGE 4.0: POI Engine Architecture
+ * 
+ * This repository acts as a single interface for all POI data sources.
+ * Future implementations (OpenStreetMap, Google Places, etc.) will
+ * be added as datasources implementing this interface.
+ */
+
+import type { POI, POISearchOptions, POISource } from './POITypes';
+import { POIErrorCode } from './POITypes';
+import type { POIDatasource } from './POIDatasource';
+
+/**
+ * POI Repository Error
+ */
+class POIRepositoryError extends Error {
+  code: POIErrorCode;
+  retryable: boolean;
+  
+  constructor(code: POIErrorCode, message: string, retryable: boolean = true) {
+    super(message);
+    this.name = 'POIRepositoryError';
+    this.code = code;
+    this.retryable = retryable;
+  }
+}
+
+/**
+ * POI Repository
+ * Single point of entry for all POI data access
+ */
+class POIRepository {
+  private datasources: Map<POISource, POIDatasource> = new Map();
+  private defaultSource: POISource;
+  private fallbackSources: POISource[];
+  
+  constructor() {
+    this.defaultSource = 'openstreetmap' as POISource;
+    this.fallbackSources = ['overpass', 'local_cache'] as POISource[];
+  }
+  
+  /**
+   * Register a datasource
+   */
+  registerDatasource(source: POISource, datasource: POIDatasource): void {
+    this.datasources.set(source, datasource);
+    console.log(`[POI REPO] Registered datasource: ${source}`);
+  }
+  
+  /**
+   * Unregister a datasource
+   */
+  unregisterDatasource(source: POISource): void {
+    this.datasources.delete(source);
+    console.log(`[POI REPO] Unregistered datasource: ${source}`);
+  }
+  
+  /**
+   * Set default source
+   */
+  setDefaultSource(source: POISource): void {
+    this.defaultSource = source;
+    console.log(`[POI REPO] Default source: ${source}`);
+  }
+  
+  /**
+   * Set fallback sources
+   */
+  setFallbackSources(sources: POISource[]): void {
+    this.fallbackSources = sources;
+    console.log(`[POI REPO] Fallback sources: ${sources.join(', ')}`);
+  }
+  
+  /**
+   * Search POIs using configured sources
+   */
+  async searchPOIs(options: POISearchOptions): Promise<POI[]> {
+    const sources = [this.defaultSource, ...this.fallbackSources];
+    
+    for (const source of sources) {
+      const datasource = this.datasources.get(source);
+      
+      if (!datasource) {
+        console.log(`[POI REPO] Datasource not registered: ${source}`);
+        continue;
+      }
+      
+      try {
+        console.log(`[POI REPO] Searching with source: ${source}`);
+        const pois = await datasource.search(options);
+        
+        if (pois.length > 0) {
+          console.log(`[POI REPO] Found ${pois.length} POIs from ${source}`);
+          return this.enrichPOIs(pois, options.latitude, options.longitude);
+        }
+        
+        console.log(`[POI REPO] No POIs from ${source}, trying next source...`);
+      } catch (error) {
+        console.error(`[POI REPO] Error from ${source}:`, error);
+        
+        // If last source, throw error
+        if (source === sources[sources.length - 1]) {
+          throw new POIRepositoryError(
+            POIErrorCode.SOURCE_UNAVAILABLE,
+            `All sources failed. Last error from ${source}: ${error}`
+          );
+        }
+      }
+    }
+    
+    throw new POIRepositoryError(
+      POIErrorCode.NO_RESULTS,
+      'No POIs found from any source'
+    );
+  }
+  
+  /**
+   * Get POI by ID
+   */
+  async getPOIById(id: string, source?: POISource): Promise<POI | null> {
+    const targetSource = source || this.defaultSource;
+    const datasource = this.datasources.get(targetSource);
+    
+    if (!datasource) {
+      throw new POIRepositoryError(
+        POIErrorCode.SOURCE_UNAVAILABLE,
+        `Datasource not available: ${targetSource}`
+      );
+    }
+    
+    return datasource.getById(id);
+  }
+  
+  /**
+   * Get nearby POIs
+   */
+  async getNearbyPOIs(
+    latitude: number,
+    longitude: number,
+    radius: number,
+    options?: Partial<POISearchOptions>
+  ): Promise<POI[]> {
+    return this.searchPOIs({
+      latitude,
+      longitude,
+      radius,
+      ...options,
+    });
+  }
+  
+  /**
+   * Get POIs by category
+   */
+  async getPOIsByCategory(
+    category: string,
+    latitude: number,
+    longitude: number,
+    radius: number
+  ): Promise<POI[]> {
+    return this.searchPOIs({
+      latitude,
+      longitude,
+      radius,
+      categories: [category as any],
+    });
+  }
+  
+  /**
+   * Enrich POIs with calculated fields
+   */
+  private enrichPOIs(pois: POI[], userLat: number, userLng: number): POI[] {
+    return pois.map(poi => ({
+      ...poi,
+      distance: this.calculateDistance(
+        userLat,
+        userLng,
+        poi.latitude,
+        poi.longitude
+      ),
+      bearing: this.calculateBearing(
+        userLat,
+        userLng,
+        poi.latitude,
+        poi.longitude
+      ),
+    }));
+  }
+  
+  /**
+   * Calculate distance between two points (Haversine formula)
+   * Returns distance in meters
+   */
+  private calculateDistance(
+    lat1: number,
+    lng1: number,
+    lat2: number,
+    lng2: number
+  ): number {
+    const R = 6371000; // Earth's radius in meters
+    const dLat = this.toRad(lat2 - lat1);
+    const dLng = this.toRad(lng2 - lng1);
+    
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(this.toRad(lat1)) *
+        Math.cos(this.toRad(lat2)) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
+    
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+  
+  /**
+   * Calculate bearing between two points
+   * Returns bearing in degrees (0-360)
+   */
+  private calculateBearing(
+    lat1: number,
+    lng1: number,
+    lat2: number,
+    lng2: number
+  ): number {
+    const dLng = this.toRad(lng2 - lng1);
+    const y = Math.sin(dLng) * Math.cos(this.toRad(lat2));
+    const x =
+      Math.cos(this.toRad(lat1)) * Math.sin(this.toRad(lat2)) -
+      Math.sin(this.toRad(lat1)) * Math.cos(this.toRad(lat2)) * Math.cos(dLng);
+    
+    let bearing = this.toDeg(Math.atan2(y, x));
+    bearing = (bearing + 360) % 360;
+    return bearing;
+  }
+  
+  /**
+   * Convert degrees to radians
+   */
+  private toRad(deg: number): number {
+    return (deg * Math.PI) / 180;
+  }
+  
+  /**
+   * Convert radians to degrees
+   */
+  private toDeg(rad: number): number {
+    return (rad * 180) / Math.PI;
+  }
+  
+  /**
+   * Get registered datasources
+   */
+  getRegisteredDatasources(): POISource[] {
+    return Array.from(this.datasources.keys());
+  }
+  
+  /**
+   * Check if datasource is available
+   */
+  isDatasourceAvailable(source: POISource): boolean {
+    return this.datasources.has(source);
+  }
+}
+
+// Export singleton instance
+export const poiRepository = new POIRepository();
+
+// Export class for testing
+export { POIRepository, POIRepositoryError };
+
+export default poiRepository;
