@@ -1,6 +1,9 @@
 /**
  * GUIDY - Map Provider
  * React context and hooks for map functionality
+ * 
+ * STAGE 4.1 CERTIFIED BASE
+ * Recovery from Stage 4.4H - Removed debug logs
  */
 
 import React, {
@@ -69,19 +72,13 @@ export function MapProvider({
   // Location from Location Engine
   const location = useLocation();
   const currentLocation = location?.currentLocation;
-  
-  // Log location updates for debugging
-  console.log('[MAP PROVIDER] useLocation hook called, currentLocation:', currentLocation?.latitude, currentLocation?.longitude);
 
   // Track previous location to prevent unnecessary updates
   const previousLocationRef = useRef<MapCoordinate | null>(null);
 
   // Update region when location changes
   useEffect(() => {
-    console.log('[MAP PROVIDER] useEffect triggered, currentLocation:', currentLocation?.latitude, currentLocation?.longitude, 'isFollowingUser:', isFollowingUser);
-    
     if (currentLocation && isFollowingUser && enableFollowOnLocationUpdate) {
-      console.log('[MAP PROVIDER] Updating user marker with location:', currentLocation.latitude, currentLocation.longitude);
       const newCoordinate: MapCoordinate = {
         latitude: currentLocation.latitude,
         longitude: currentLocation.longitude,

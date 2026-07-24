@@ -471,7 +471,7 @@ out skel qt;`;
     if (pois.length > 0) {
       console.log(`[PARSER] Sample POIs:`);
       pois.slice(0, 3).forEach((poi, index) => {
-        console.log(`[PARSER]   ${index + 1}. ${poi.name} (${poi.category}/${poi.subcategory}) - ${Math.round(poi.distance)}m away`);
+        console.log(`[PARSER]   ${index + 1}. ${poi.name} (${poi.category}/${poi.subcategory}) - ${Math.round(poi.distance ?? 0)}m away`);
       });
       if (pois.length > 3) {
         console.log(`[PARSER]   ... and ${pois.length - 3} more`);

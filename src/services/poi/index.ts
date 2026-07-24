@@ -2,7 +2,11 @@
  * GUIDY - POI Services
  * Public API for POI functionality
  * 
- * STAGE 4.4: POI Engine Orchestration
+ * STAGE 4.1 CERTIFIED BASE
+ * Recovery from Stage 4.4H - Removed Stage 4.2-4.4 code
+ * 
+ * POI Orchestrator, Discovery, and Session temporarily disabled
+ * for architectural recovery.
  */
 
 // Types
@@ -43,12 +47,6 @@ export { BasePOIDatasource } from './POIDatasource';
 // Datasources (STAGE 4.1)
 export * from './datasources';
 
-// Discovery Engine (STAGE 4.2)
-export * from './discovery';
-
-// Session Manager (STAGE 4.3)
-export * from './session';
-
 // Engine
 export { poiEngine, POIEngine } from './POIEngine';
 
@@ -58,24 +56,8 @@ export { poiCache, POICache } from './POICache';
 // Filter
 export { poiFilter, POIFilter } from './POIFilter';
 
-// Orchestrator (STAGE 4.4)
-export { poiOrchestrator, POIOrchestrator } from './POIOrchestrator';
-export type { POIOrchestratorConfig, OrchestratorState } from './POIOrchestrator';
-
-// Orchestrator Provider (STAGE 4.4)
-export {
-  POIOrchestratorProvider,
-  usePOIOrchestrator,
-  useIsOrchestratorRunning,
-  useOrchestratorState,
-  useOrchestratorStats,
-  useSessionStats,
-  useDiscovery,
-} from './POIOrchestratorProvider';
-
-// Provider
-export {
-  POIProvider,
-  usePOI,
-  usePOISearch,
-} from './POIProvider';
+/**
+ * NOTE: POI Orchestrator, Discovery Engine, and Session Manager
+ * have been temporarily disabled for Stage 4.1 recovery.
+ * These features will be re-implemented properly in a future stage.
+ */

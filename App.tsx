@@ -2,6 +2,9 @@
  * GUIDY - AI Audio Tourist Companion
  * Main Application Entry Point
  *
+ * STAGE 4.1 CERTIFIED BASE
+ * Recovery from Stage 4.4H - Removed POIOrchestratorProvider
+ *
  * @format
  */
 
@@ -19,13 +22,19 @@ import {AppNavigator} from './src/navigation';
 // Import theme
 import {lightTheme, darkTheme} from './src/theme';
 
-// Import providers
+// Import providers - STAGE 4.1 Certified
 import {LocationProvider} from './src/services/location';
 import {MapProvider} from './src/services/maps';
-import {POIOrchestratorProvider} from './src/services/poi';
 
 /**
  * Main App Component
+ * 
+ * Architecture (Stage 4.1 Certified):
+ * - LocationProvider: GPS and permissions
+ * - MapProvider: Map rendering and user marker
+ * - AppNavigator: Screen navigation
+ * 
+ * POI functionality temporarily disabled for recovery.
  */
 function App(): React.JSX.Element {
   const isDarkMode = useAppStore(state => state.isDarkMode);
@@ -41,9 +50,7 @@ function App(): React.JSX.Element {
         />
         <LocationProvider>
           <MapProvider>
-            <POIOrchestratorProvider autoStart={true} autoDiscovery={true}>
-              <AppNavigator />
-            </POIOrchestratorProvider>
+            <AppNavigator />
           </MapProvider>
         </LocationProvider>
       </PaperProvider>

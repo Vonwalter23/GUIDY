@@ -329,17 +329,7 @@ export function OpenStreetMap({
 
   // Update map when user location changes
   useEffect(() => {
-    console.log('[OPENSTREETMAP] ============================================');
-    console.log('[OPENSTREETMAP] User marker effect triggered');
-    console.log(`[OPENSTREETMAP] userMarker: ${userMarker ? 'exists' : 'null'}`);
-    console.log(`[OPENSTREETMAP] isMapReady: ${isMapReady}`);
-    console.log(`[OPENSTREETMAP] isFollowingUser: ${isFollowingUser}`);
-    if (userMarker) {
-      console.log(`[OPENSTREETMAP] userMarker coordinates: ${userMarker.coordinate.latitude}, ${userMarker.coordinate.longitude}`);
-    }
-    
     if (webViewRef.current && isMapReady && userMarker) {
-      console.log('[OPENSTREETMAP] Sending updateLocation to WebView');
       webViewRef.current.postMessage(JSON.stringify({
         type: 'updateLocation',
         latitude: userMarker.coordinate.latitude,
@@ -347,7 +337,6 @@ export function OpenStreetMap({
       }));
       
       if (isFollowingUser) {
-        console.log('[OPENSTREETMAP] Sending centerOnUser to WebView');
         webViewRef.current.postMessage(JSON.stringify({
           type: 'centerOnUser',
           latitude: userMarker.coordinate.latitude,
@@ -355,33 +344,12 @@ export function OpenStreetMap({
           animate: true,
         }));
       }
-      console.log('[OPENSTREETMAP] postMessage called successfully');
-    } else {
-      console.log('[OPENSTREETMAP] Skipping updateLocation: webViewRef:', !!webViewRef.current, 'isMapReady:', isMapReady, 'userMarker:', !!userMarker);
     }
-    console.log('[OPENSTREETMAP] ============================================');
   }, [userMarker, isMapReady, isFollowingUser]);
 
   // Update POI markers when pois change
   useEffect(() => {
-    console.log('[OPENSTREETMAP] ============================================');
-    console.log('[OPENSTREETMAP] POIs changed');
-    console.log(`[OPENSTREETMAP] POIs count: ${pois.length}`);
-    console.log(`[OPENSTREETMAP] isMapReady: ${isMapReady}`);
-    console.log(`[OPENSTREETMAP] webViewRef exists: ${!!webViewRef.current}`);
-    
-    if (pois.length > 0) {
-      const sample = pois[0];
-      console.log(`[OPENSTREETMAP] Sample POI:`);
-      console.log(`[OPENSTREETMAP]   ID: ${sample.id}`);
-      console.log(`[OPENSTREETMAP]   Name: ${sample.name}`);
-      console.log(`[OPENSTREETMAP]   Latitude: ${sample.latitude}`);
-      console.log(`[OPENSTREETMAP]   Longitude: ${sample.longitude}`);
-      console.log(`[OPENSTREETMAP]   Category: ${sample.category}`);
-      console.log(`[OPENSTREETMAP]   Distance: ${sample.distance}`);
-    }
-    
-    if (webViewRef.current && isMapReady) {
+    if (webViewRef.current && isMapReady && pois.length > 0) {
       const poisData = pois.map(poi => ({
         id: poi.id,
         name: poi.name,
@@ -392,26 +360,11 @@ export function OpenStreetMap({
         distance: poi.distance,
       }));
       
-      console.log('[OPENSTREETMAP] Sending updatePOIs message with', poisData.length, 'POIs');
-      console.log('[OPENSTREETMAP] First POI in message:', JSON.stringify(poisData[0] || 'none'));
-      
-      const message = JSON.stringify({
+      webViewRef.current.postMessage(JSON.stringify({
         type: 'updatePOIs',
         pois: poisData,
-      });
-      
-      console.log('[OPENSTREETMAP] Message length:', message.length, 'chars');
-      console.log('[OPENSTREETMAP] Calling postMessage...');
-      
-      webViewRef.current.postMessage(message);
-      
-      console.log('[OPENSTREETMAP] postMessage called successfully');
-    } else {
-      console.log('[OPENSTREETMAP] Skipping: webView not ready');
-      if (!webViewRef.current) console.log('[OPENSTREETMAP] Reason: webViewRef.current is null');
-      if (!isMapReady) console.log('[OPENSTREETMAP] Reason: isMapReady is false');
+      }));
     }
-    console.log('[OPENSTREETMAP] ============================================');
   }, [pois, isMapReady]);
 
   // Handle WebView load

@@ -6,6 +6,52 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.0.25] - 2026-07-24 - STAGE RECOVERY (Rollback to Stage 4.1)
+
+### Recovery Objective
+Full regression rollback to Stage 4.1 certified base. The project had accumulated technical debt during Stages 4.2-4.4 that caused critical regressions.
+
+### Removed (Stage 4.2-4.4 Code)
+- `POIOrchestrator.ts` - Caused race conditions
+- `POIOrchestratorProvider.tsx` - Interfered with MapProvider
+- `POIProvider.tsx` - Unnecessary provider
+- `discovery/` directory - 8 files with complexity explosion
+- `session/` directory - 7 files with unnecessary session management
+- Test files for removed code
+
+### Fixed
+- **CRITICAL**: Map marker now visible (removed POIOrchestratorProvider interference)
+- **CRITICAL**: Removed debug logs from MapProvider and OpenStreetMap
+- TypeScript error in OverpassDatasource (distance undefined)
+
+### Restored
+- App.tsx to Stage 4.1 provider hierarchy
+- MapProvider.tsx (clean version without debug logs)
+- OpenStreetMap.tsx (clean version without debug logs)
+- poi/index.ts exports (removed obsolete exports)
+
+### Documentation
+- docs/STAGE_RECOVERY_PLAN.md - Complete recovery plan
+- docs/STAGE_RECOVERY_AUDIT.md - Forensic analysis
+- docs/STAGE_RECOVERY_REGRESSION.md - Regression sources analysis
+
+### APK Information
+| Type | SHA256 |
+|------|--------|
+| Debug | `30022dccd51f400f742e487b20c469467ee80de941c9ba8d323af9acd8084068` |
+| Release | `83b856a0253d1fe588b2b3216adbcc7bede1238726a29f22d42dcdedb826ae95` |
+
+### Status
+- GPS functionality: ✅ Working
+- Location marker: ✅ Visible
+- Map behavior: ✅ Restored
+- No regressions from Stage 4.1
+
+### Next Step
+Await human approval before any new implementation stage.
+
+---
+
 ## [0.0.24] - 2026-07-24 - STAGE 4.4H
 
 ### Fixed
