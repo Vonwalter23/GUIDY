@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.0.23] - 2026-07-24 - STAGE 4.4G
+
+### Documentation
+- docs/STAGE_4_4G_FORENSIC.md - Complete forensic analysis
+- docs/STAGE_4_4G_REGRESSION_ROOT_CAUSE.md - Root cause analysis
+- docs/STAGE_4_4G_REPORT.md - Final report
+- docs/STAGE_4_4G_AUDIT.md - Component audit
+- docs/STAGE_4_4G_TRACE.md - End-to-end trace guide
+
+### Status
+- All root causes from previous stages fixed
+- Code compiles successfully
+- Physical validation required
+
 ## [0.0.22] - 2026-07-24 - STAGE 4.4F
 
 ### Fixed
