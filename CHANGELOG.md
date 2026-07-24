@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.0.21] - 2026-07-24 - STAGE 4.4E
+
+### Fixed
+- **CRITICAL**: OverpassDatasource was sending JSON instead of raw query to Overpass API
+  - Overpass API expects plain text query, not JSON
+  - `BaseNetworkClient.post()` was wrapping body in JSON: `{"data":"query"}`
+  - Overpass couldn't parse this format and returned empty results
+  - Fixed by using `fetch()` directly with raw query string
+
+### Documentation
+- `docs/STAGE_4_4E_ROOT_CAUSE.md` - Root cause analysis
+- `docs/STAGE_4_4E_FORENSIC.md` - Forensic audit
+
+## [0.0.20] - 2026-07-24 - STAGE 4.4D
+
+### Fixed
+- **CRITICAL**: DiscoveryEngine.search() returns empty results immediately
+  - Added 500ms wait and getResults() call to get actual POIs
+  - Fixed WebView message handler (document.addEventListener → window.addEventListener)
+  - Added useEffect to trigger discovery on orchestrator start
+
 ## [0.0.19] - 2026-07-24 - STAGE 4.4C
 
 ### Added

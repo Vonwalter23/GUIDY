@@ -390,24 +390,44 @@ export class OverpassDatasource extends BasePOIDatasource {
     console.log(`[OVERPASS] Method: POST`);
     console.log(`[OVERPASS] URL: ${this.overpassConfig.baseUrl}`);
     console.log(`[OVERPASS] Query length: ${query.length} chars`);
+    console.log(`[OVERPASS] Query preview: ${query.substring(0, 100)}...`);
     
     const requestStartTime = Date.now();
     
     try {
-      const response = await this.networkClient.post<OverpassResponse>(
-        '',
-        { data: query },
-        { method: 'POST' } as RequestInit
-      );
+      // Overpass API expects raw query as body, NOT JSON
+      // Using fetch directly to send raw text body
+      const controller = new AbortController();
+      
+      const response = await fetch(this.overpassConfig.baseUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'GUIDY/1.0 (Android App; POI Engine)',
+        },
+        body: query,  // Raw query string, not JSON
+        signal: controller.signal,
+      });
       
       const requestDuration = Date.now() - requestStartTime;
       
       console.log(`[OVERPASS] HTTP Response received`);
-      console.log(`[OVERPASS] Status: ${response.status || 200}`);
+      console.log(`[OVERPASS] Status: ${response.status}`);
+      console.log(`[OVERPASS] Status text: ${response.statusText}`);
       console.log(`[OVERPASS] Duration: ${requestDuration}ms`);
-      console.log(`[OVERPASS] Elements: ${response.data?.elements?.length || 0}`);
       
-      return response.data;
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[OVERPASS] HTTP Error: ${response.status} ${response.statusText}`);
+        console.error(`[OVERPASS] Error body: ${errorText.substring(0, 500)}`);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      console.log(`[OVERPASS] Elements: ${data?.elements?.length || 0}`);
+      
+      return data as OverpassResponse;
     } finally {
       this.pendingRequests = null;
     }
