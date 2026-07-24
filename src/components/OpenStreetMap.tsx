@@ -329,7 +329,17 @@ export function OpenStreetMap({
 
   // Update map when user location changes
   useEffect(() => {
+    console.log('[OPENSTREETMAP] ============================================');
+    console.log('[OPENSTREETMAP] User marker effect triggered');
+    console.log(`[OPENSTREETMAP] userMarker: ${userMarker ? 'exists' : 'null'}`);
+    console.log(`[OPENSTREETMAP] isMapReady: ${isMapReady}`);
+    console.log(`[OPENSTREETMAP] isFollowingUser: ${isFollowingUser}`);
+    if (userMarker) {
+      console.log(`[OPENSTREETMAP] userMarker coordinates: ${userMarker.coordinate.latitude}, ${userMarker.coordinate.longitude}`);
+    }
+    
     if (webViewRef.current && isMapReady && userMarker) {
+      console.log('[OPENSTREETMAP] Sending updateLocation to WebView');
       webViewRef.current.postMessage(JSON.stringify({
         type: 'updateLocation',
         latitude: userMarker.coordinate.latitude,
@@ -337,6 +347,7 @@ export function OpenStreetMap({
       }));
       
       if (isFollowingUser) {
+        console.log('[OPENSTREETMAP] Sending centerOnUser to WebView');
         webViewRef.current.postMessage(JSON.stringify({
           type: 'centerOnUser',
           latitude: userMarker.coordinate.latitude,
@@ -344,7 +355,11 @@ export function OpenStreetMap({
           animate: true,
         }));
       }
+      console.log('[OPENSTREETMAP] postMessage called successfully');
+    } else {
+      console.log('[OPENSTREETMAP] Skipping updateLocation: webViewRef:', !!webViewRef.current, 'isMapReady:', isMapReady, 'userMarker:', !!userMarker);
     }
+    console.log('[OPENSTREETMAP] ============================================');
   }, [userMarker, isMapReady, isFollowingUser]);
 
   // Update POI markers when pois change

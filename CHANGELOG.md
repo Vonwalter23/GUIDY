@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.0.24] - 2026-07-24 - STAGE 4.4H
+
+### Fixed
+- **CRITICAL**: Overpass query was malformed
+  - Was generating: `node["amenity=restaurant","amenity=cafe"](around:...)`
+  - Now generates: `node["amenity"~"restaurant|cafe"](around:...)`
+  - Fixed in: `OverpassDatasource.buildSearchQuery()`
+
+### Added
+- Debug logs to MapProvider for location updates
+- Debug logs to OpenStreetMap for user marker updates
+
+### Documentation
+- docs/STAGE_4_4H_ISSUES_FOUND.md - Issues found from physical validation
+
 ## [0.0.23] - 2026-07-24 - STAGE 4.4G
 
 ### Documentation

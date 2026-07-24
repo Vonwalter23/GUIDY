@@ -353,21 +353,28 @@ export class OverpassDatasource extends BasePOIDatasource {
       'supermarket', 'bakery', 'clothes', 'shoes',
     ];
     
-    const amenityFilter = amenityTypes.map(t => `"amenity=${t}"`).join(',');
-    const tourismFilter = tourismTypes.map(t => `"tourism=${t}"`).join(',');
-    const shopFilter = shopTypes.map(t => `"shop=${t}"`).join(',');
+    // Build filter for amenity types - use regex pattern for OR matching
+    // Overpass format: ["amenity"~"restaurant|cafe|bar"]
+    const amenityRegex = amenityTypes.join('|');
+    const tourismRegex = tourismTypes.join('|');
+    const shopRegex = shopTypes.join('|');
     
-    return `[out:json][timeout:25];(
-      node[${amenityFilter}](around:${radius},${latitude},${longitude});
-      node[${tourismFilter}](around:${radius},${latitude},${longitude});
-      node[${shopFilter}](around:${radius},${latitude},${longitude});
-      way[${amenityFilter}](around:${radius},${latitude},${longitude});
-      way[${tourismFilter}](around:${radius},${latitude},${longitude});
-      way[${shopFilter}](around:${radius},${latitude},${longitude});
-    );
-    out body center;
-    >;
-    out skel qt;`;
+    // Build query with individual node/way queries using regex
+    // Format: node["amenity"~"restaurant|cafe"](around:radius,lat,lng)
+    const query = `[out:json][timeout:25];
+(
+  node["amenity"~"${amenityRegex}"](around:${radius},${latitude},${longitude});
+  node["tourism"~"${tourismRegex}"](around:${radius},${latitude},${longitude});
+  node["shop"~"${shopRegex}"](around:${radius},${latitude},${longitude});
+  way["amenity"~"${amenityRegex}"](around:${radius},${latitude},${longitude});
+  way["tourism"~"${tourismRegex}"](around:${radius},${latitude},${longitude});
+  way["shop"~"${shopRegex}"](around:${radius},${latitude},${longitude});
+);
+out body center;
+>;
+out skel qt;`;
+    
+    return query;
   }
 
   /**
