@@ -228,8 +228,8 @@ const MAP_HTML = `
     });
 
     // Message handler from React Native
-    // Using window.addEventListener for better React Native WebView compatibility
-    window.addEventListener('message', function(e) {
+    // STAGE 4.1.2: Fixed - must use document.addEventListener for React Native WebView
+    document.addEventListener('message', function(e) {
       console.log('[WEBVIEW] Received message:', e.data);
       try {
         var data = JSON.parse(e.data);
