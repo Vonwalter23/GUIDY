@@ -112,15 +112,19 @@ export function POIOrchestratorProvider({
     if (isInitializedRef.current) return;
     
     const init = async () => {
+      console.log(`[PROVIDER] Initializing POI Orchestrator...`);
       await poiOrchestrator.initialize();
       isInitializedRef.current = true;
+      console.log(`[PROVIDER] Orchestrator initialized`);
       
       // Sync store with state machine
       syncPOIStoreWithStateMachine();
       
       // Auto-start if enabled
       if (autoStartRef.current) {
+        console.log(`[PROVIDER] Auto-starting Orchestrator...`);
         poiOrchestrator.start();
+        console.log(`[PROVIDER] Orchestrator started, isRunning: ${poiOrchestrator.isRunning()}`);
       }
     };
     
@@ -135,12 +139,18 @@ export function POIOrchestratorProvider({
   // Update orchestrator with location changes
   useEffect(() => {
     if (location) {
+      console.log(`[PROVIDER] Location update: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}`);
       poiOrchestrator.updateLocation(location.latitude, location.longitude);
       
       // Auto-discover if enabled
       if (autoDiscovery && poiOrchestrator.isRunning()) {
+        console.log(`[PROVIDER] Triggering auto-discovery (orchestrator running)`);
         poiOrchestrator.discoverPOIs();
+      } else {
+        console.log(`[PROVIDER] Auto-discovery skipped: autoDiscovery=${autoDiscovery}, orchestratorRunning=${poiOrchestrator.isRunning()}`);
       }
+    } else {
+      console.log(`[PROVIDER] No location available yet`);
     }
   }, [location, autoDiscovery]);
   

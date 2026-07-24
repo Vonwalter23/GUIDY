@@ -221,15 +221,23 @@ export class DiscoveryEngine {
    * Perform POI search
    */
   private async performSearch(): Promise<void> {
+    console.log(`[DISCOVERY] ============================================`);
+    console.log(`[DISCOVERY] performSearch() executing...`);
+    console.log(`[DISCOVERY] currentLocation: ${this.currentLocation ? `${this.currentLocation.latitude.toFixed(6)}, ${this.currentLocation.longitude.toFixed(6)}` : 'null'}`);
+    
     if (!this.currentLocation) {
+      console.log(`[DISCOVERY] Cannot search - no current location`);
       log('Cannot search - no current location');
+      console.log(`[DISCOVERY] ============================================`);
       return;
     }
     
     const { latitude, longitude } = this.currentLocation;
     const radius = this.getCurrentRadius();
     
-    log(`Searching at (${latitude.toFixed(4)}, ${longitude.toFixed(4)}), radius: ${radius}m`);
+    console.log(`[DISCOVERY] Searching at (${latitude.toFixed(6)}, ${longitude.toFixed(6)}), radius: ${radius}m`);
+    console.log(`[DISCOVERY] maxResults: ${this.config.maxResults}`);
+    console.log(`[DISCOVERY] enableCache: ${this.config.enableCache}`);
     this.stateMachine.sendEvent(DiscoveryEventEnum.SEARCH_START);
     
     const startTime = Date.now();
@@ -237,16 +245,30 @@ export class DiscoveryEngine {
     try {
       // Check cache first
       if (this.config.enableCache) {
+        console.log(`[DISCOVERY] Checking cache...`);
         const cachedResult = this.cache.getNearby(latitude, longitude, radius);
         if (cachedResult) {
+          console.log(`[DISCOVERY] Cache HIT! Using cached results (${cachedResult.pois.length} POIs)`);
           log('Using cached results');
           this.stateMachine.sendEvent(DiscoveryEventEnum.CACHE_HIT);
           this.processResults(cachedResult.pois, 'cache');
+          console.log(`[DISCOVERY] ============================================`);
           return;
+        } else {
+          console.log(`[DISCOVERY] Cache MISS`);
         }
       }
       
       // Use POI repository
+      console.log(`[DISCOVERY] Calling poiRepository.searchPOIs...`);
+      console.log(`[REPOSITORY] ============================================`);
+      console.log(`[REPOSITORY] searchPOIs called with:`);
+      console.log(`[REPOSITORY] latitude: ${latitude}`);
+      console.log(`[REPOSITORY] longitude: ${longitude}`);
+      console.log(`[REPOSITORY] radius: ${radius}`);
+      console.log(`[REPOSITORY] limit: ${this.config.maxResults}`);
+      console.log(`[REPOSITORY] ============================================`);
+      
       const pois = await poiRepository.searchPOIs({
         latitude,
         longitude,
@@ -258,14 +280,17 @@ export class DiscoveryEngine {
       this.totalSearchTime += searchTime;
       this.searchCount++;
       
+      console.log(`[DISCOVERY] Search completed: ${pois.length} POIs in ${searchTime}ms`);
       log(`Search completed: ${pois.length} POIs in ${searchTime}ms`);
       
       // Process results
+      console.log(`[DISCOVERY] Processing results...`);
       this.processResults(pois, 'network');
       this.stateMachine.sendEvent(DiscoveryEventEnum.SEARCH_COMPLETE);
       
       // Cache results
       if (this.config.enableCache) {
+        console.log(`[DISCOVERY] Caching ${this.results.length} results`);
         this.cache.set(latitude, longitude, radius, this.results);
       }
       
@@ -273,7 +298,11 @@ export class DiscoveryEngine {
       this.lastSearchLocation = { latitude, longitude };
       this.lastSearchTime = Date.now();
       
+      console.log(`[DISCOVERY] performSearch completed successfully`);
+      console.log(`[DISCOVERY] ============================================`);
+      
     } catch (error) {
+      console.log(`[DISCOVERY] Search error:`, error);
       log('Search error:', error);
       this.error = error instanceof Error ? error : new Error('Unknown error');
       
@@ -282,6 +311,7 @@ export class DiscoveryEngine {
       } else {
         this.stateMachine.sendEvent(DiscoveryEventEnum.ERROR);
       }
+      console.log(`[DISCOVERY] ============================================`);
     }
   }
 
@@ -311,20 +341,35 @@ export class DiscoveryEngine {
    * Trigger search (called externally)
    */
   async search(): Promise<POI[]> {
+    console.log(`[DISCOVERY] ============================================`);
+    console.log(`[DISCOVERY] search() called`);
+    console.log(`[DISCOVERY] isInitialized: ${this.isInitialized}`);
+    console.log(`[DISCOVERY] currentLocation: ${this.currentLocation ? `${this.currentLocation.latitude.toFixed(6)}, ${this.currentLocation.longitude.toFixed(6)}` : 'null'}`);
+    console.log(`[DISCOVERY] isInCooldown: ${this.scheduler.isInCooldown()}`);
+    console.log(`[DISCOVERY] remainingCooldown: ${this.scheduler.getRemainingCooldown()}ms`);
+    console.log(`[DISCOVERY] currentState: ${this.stateMachine.getState()}`);
+    console.log(`[DISCOVERY] ============================================`);
+    
     if (!this.isInitialized) {
+      console.log(`[DISCOVERY] Not initialized, calling initialize()...`);
       await this.initialize();
     }
     
     if (this.scheduler.isInCooldown()) {
+      console.log(`[DISCOVERY] Search skipped - in cooldown`);
       log('Search skipped - in cooldown');
       return this.results;
     }
     
+    console.log(`[DISCOVERY] Scheduling search via debouncer...`);
     // Schedule via debouncer
     this.scheduler.scheduleSearch(() => {
+      console.log(`[DISCOVERY] Debouncer callback executing...`);
       this.performSearch();
     });
     
+    console.log(`[DISCOVERY] Returning current results (${this.results.length} POIs)`);
+    console.log(`[DISCOVERY] ============================================`);
     return this.results;
   }
 

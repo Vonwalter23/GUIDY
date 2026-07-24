@@ -315,6 +315,12 @@ class POIOrchestrator {
    * This is the main entry point for location updates
    */
   updateLocation(latitude: number, longitude: number): void {
+    console.log(`[ORCHESTRATOR] ============================================`);
+    console.log(`[ORCHESTRATOR] updateLocation called`);
+    console.log(`[ORCHESTRATOR] Location: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+    console.log(`[ORCHESTRATOR] State: ${this.state}`);
+    console.log(`[ORCHESTRATOR] ============================================`);
+    
     const previousLocation = this.currentLocation;
     this.currentLocation = { latitude, longitude };
     
@@ -328,18 +334,24 @@ class POIOrchestrator {
       );
       
       this.totalDistanceMoved += distance;
+      console.log(`[ORCHESTRATOR] Movement: ${Math.round(distance)}m since last update, total: ${Math.round(this.totalDistanceMoved)}m`);
       logDiscovery('Movement detected', {
         distance: Math.round(distance),
         totalMoved: Math.round(this.totalDistanceMoved),
         location: { lat: latitude.toFixed(6), lng: longitude.toFixed(6) },
       });
+    } else {
+      console.log(`[ORCHESTRATOR] First location received`);
     }
     
     // Update Discovery Engine
+    console.log(`[ORCHESTRATOR] Calling discoveryEngine.updateLocation...`);
     discoveryEngine.updateLocation(latitude, longitude);
     
     // Update POI State Machine
     poiStateMachine.sendEvent({ type: 'LOCATION_UPDATE' } as any);
+    
+    console.log(`[ORCHESTRATOR] updateLocation completed`);
   }
 
   /**
@@ -359,12 +371,24 @@ class POIOrchestrator {
    * Called automatically by Location Engine or manually
    */
   async discoverPOIs(): Promise<POI[]> {
+    console.log(`[ORCHESTRATOR] ============================================`);
+    console.log(`[ORCHESTRATOR] discoverPOIs called`);
+    console.log(`[ORCHESTRATOR] isInitialized: ${this.isInitialized}`);
+    console.log(`[ORCHESTRATOR] currentLocation: ${this.currentLocation ? `${this.currentLocation.latitude.toFixed(6)}, ${this.currentLocation.longitude.toFixed(6)}` : 'null'}`);
+    console.log(`[ORCHESTRATOR] state: ${this.state}`);
+    console.log(`[ORCHESTRATOR] config.defaultRadius: ${this.config.defaultRadius}`);
+    console.log(`[ORCHESTRATOR] config.sessionEnabled: ${this.config.sessionEnabled}`);
+    console.log(`[ORCHESTRATOR] config.storeSyncEnabled: ${this.config.storeSyncEnabled}`);
+    console.log(`[ORCHESTRATOR] ============================================`);
+    
     if (!this.isInitialized || !this.currentLocation) {
+      console.log(`[ORCHESTRATOR] Cannot discover - not initialized or no location`);
       logDiscovery('Cannot discover - not initialized or no location');
       return [];
     }
 
     const startTime = Date.now();
+    console.log(`[ORCHESTRATOR] Starting POI discovery...`);
     logDiscovery('Starting POI discovery', {
       location: this.currentLocation,
       radius: this.config.defaultRadius,
@@ -372,6 +396,7 @@ class POIOrchestrator {
 
     try {
       // Trigger discovery engine search
+      console.log(`[ORCHESTRATOR] Calling discoveryEngine.search()...`);
       const pois = await discoveryEngine.search();
       
       const duration = Date.now() - startTime;
@@ -380,6 +405,7 @@ class POIOrchestrator {
       this.stats.totalPOIsDiscovered += pois.length;
       this.stats.lastDiscoveryTime = Date.now();
       
+      console.log(`[ORCHESTRATOR] Discovery completed: ${pois.length} POIs in ${duration}ms`);
       logDiscovery('Discovery completed', {
         poiCount: pois.length,
         durationMs: duration,
@@ -388,20 +414,29 @@ class POIOrchestrator {
 
       // Process results through session manager
       if (this.config.sessionEnabled && pois.length > 0) {
+        console.log(`[ORCHESTRATOR] Processing through session (${pois.length} POIs)`);
         this.processPOIsThroughSession(pois);
+      } else {
+        console.log(`[ORCHESTRATOR] Skipping session: sessionEnabled=${this.config.sessionEnabled}, pois.length=${pois.length}`);
       }
 
       // Sync with store
       if (this.config.storeSyncEnabled) {
+        console.log(`[ORCHESTRATOR] Syncing with store...`);
         this.syncWithStore(pois);
+      } else {
+        console.log(`[ORCHESTRATOR] Skipping store sync: storeSyncEnabled=${this.config.storeSyncEnabled}`);
       }
 
       // Update last discovery location
       this.lastDiscoveryLocation = { ...this.currentLocation };
 
+      console.log(`[ORCHESTRATOR] discoverPOIs returning ${pois.length} POIs`);
+      console.log(`[ORCHESTRATOR] ============================================`);
       return pois;
 
     } catch (error) {
+      console.log(`[ORCHESTRATOR] Discovery failed:`, error);
       logDiscovery('Discovery failed', { error });
       return [];
     }
@@ -450,16 +485,26 @@ class POIOrchestrator {
    * Sync POIs with Zustand store
    */
   private syncWithStore(pois: POI[]): void {
-    log(LogCategory.ORCHESTRATOR, 'Syncing POIs with store', { count: pois.length });
+    console.log(`[STORE] ============================================`);
+    console.log(`[STORE] Syncing POIs with store`);
+    console.log(`[STORE] POIs to sync: ${pois.length}`);
+    if (pois.length > 0) {
+      console.log(`[STORE] Sample POI: ${pois[0].name} at ${pois[0].latitude}, ${pois[0].longitude}`);
+    }
     
     // Get current state from store
     const store = usePOIStore.getState();
+    console.log(`[STORE] Current store pois count: ${store.pois.length}`);
     
     // Update POIs
+    console.log(`[STORE] Calling store.setPOIs(${pois.length})...`);
     store.setPOIs(pois);
+    console.log(`[STORE] After setPOIs, store state:`);
+    console.log(`[STORE]   store.pois.length: ${store.pois.length}`);
     
     // Update search center
     if (this.currentLocation) {
+      console.log(`[STORE] Updating search center to ${this.currentLocation.latitude}, ${this.currentLocation.longitude}`);
       store.setSearchCenter({
         lat: this.currentLocation.latitude,
         lng: this.currentLocation.longitude,
@@ -467,8 +512,11 @@ class POIOrchestrator {
     }
     
     // Update search radius
+    console.log(`[STORE] Updating search radius to ${this.config.defaultRadius}`);
     store.setSearchRadius(this.config.defaultRadius);
     
+    console.log(`[STORE] Store synced successfully`);
+    console.log(`[STORE] ============================================`);
     log(LogCategory.ORCHESTRATOR, 'Store synced successfully');
   }
 
