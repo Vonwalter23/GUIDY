@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.0.22] - 2026-07-24 - STAGE 4.4F
+
+### Fixed
+- **CRITICAL**: OverpassDatasource was never initialized
+  - POIOrchestrator was creating the datasource but not calling initialize()
+  - validateInitialized() threw "Datasource overpass not initialized"
+  - Added: await overpassDatasource.initialize({ baseUrl, timeout })
+
+- **CRITICAL**: POIRepository defaultSource was incorrect
+  - defaultSource was 'openstreetmap' which wasn't registered
+  - Changed to 'overpass' which is the only registered datasource
+
+### Documentation
+- docs/STAGE_4_4F_FORENSIC.md - Forensic analysis
+- docs/STAGE_4_4F_REGRESSION_ANALYSIS.md - Regression vs STAGE 3.5
+- docs/STAGE_4_4F_ROOT_CAUSE.md - Root cause analysis
+- docs/STAGE_4_4F_CERTIFICATION.md - Component certification
+
 ## [0.0.21] - 2026-07-24 - STAGE 4.4E
 
 ### Fixed

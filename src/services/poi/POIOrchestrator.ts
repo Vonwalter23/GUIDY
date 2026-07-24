@@ -191,7 +191,15 @@ class POIOrchestrator {
       log(LogCategory.REPOSITORY, 'Registering OverpassDatasource...');
       const overpassDatasource = new OverpassDatasource();
       poiRepository.registerDatasource('overpass', overpassDatasource);
-      log(LogCategory.REPOSITORY, 'OverpassDatasource registered successfully');
+      
+      // CRITICAL: Initialize the OverpassDatasource (was missing!)
+      // This sets this.initialized = true which is checked in validateInitialized()
+      log(LogCategory.REPOSITORY, 'Initializing OverpassDatasource...');
+      await overpassDatasource.initialize({
+        baseUrl: 'https://overpass-api.de/api/interpreter',
+        timeout: 30000,
+      });
+      log(LogCategory.REPOSITORY, 'OverpassDatasource initialized successfully');
       
       // Initialize Discovery Engine
       await discoveryEngine.initialize();

@@ -38,8 +38,11 @@ class POIRepository {
   private fallbackSources: POISource[];
   
   constructor() {
-    this.defaultSource = 'openstreetmap' as POISource;
-    this.fallbackSources = ['overpass', 'local_cache'] as POISource[];
+    // CRITICAL: Changed defaultSource from 'openstreetmap' to 'overpass'
+    // 'openstreetmap' was not registered, causing search to fail immediately
+    // Now 'overpass' is the default since it's the only registered datasource
+    this.defaultSource = 'overpass' as POISource;
+    this.fallbackSources = ['local_cache'] as POISource[];
   }
   
   /**
