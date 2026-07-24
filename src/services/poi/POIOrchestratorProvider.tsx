@@ -139,20 +139,40 @@ export function POIOrchestratorProvider({
   // Update orchestrator with location changes
   useEffect(() => {
     if (location) {
+      console.log(`[PROVIDER] ============================================`);
       console.log(`[PROVIDER] Location update: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}`);
+      console.log(`[PROVIDER] autoDiscovery: ${autoDiscovery}`);
+      console.log(`[PROVIDER] orchestrator.isRunning(): ${poiOrchestrator.isRunning()}`);
+      console.log(`[PROVIDER] orchestrator.isReady(): ${poiOrchestrator.isReady()}`);
+      
+      // Always update location in orchestrator
       poiOrchestrator.updateLocation(location.latitude, location.longitude);
       
-      // Auto-discover if enabled
-      if (autoDiscovery && poiOrchestrator.isRunning()) {
-        console.log(`[PROVIDER] Triggering auto-discovery (orchestrator running)`);
-        poiOrchestrator.discoverPOIs();
+      // Auto-discover if enabled and orchestrator is running
+      if (autoDiscovery) {
+        if (poiOrchestrator.isRunning()) {
+          console.log(`[PROVIDER] Triggering auto-discovery (orchestrator running)`);
+          poiOrchestrator.discoverPOIs();
+        } else {
+          console.log(`[PROVIDER] Orchestrator not running yet, skipping discoverPOIs()`);
+          console.log(`[PROVIDER] NOTE: Discovery will happen when orchestrator starts or on next location`);
+        }
       } else {
-        console.log(`[PROVIDER] Auto-discovery skipped: autoDiscovery=${autoDiscovery}, orchestratorRunning=${poiOrchestrator.isRunning()}`);
+        console.log(`[PROVIDER] Auto-discovery disabled`);
       }
+      console.log(`[PROVIDER] ============================================`);
     } else {
       console.log(`[PROVIDER] No location available yet`);
     }
   }, [location, autoDiscovery]);
+  
+  // Trigger discovery when orchestrator starts (in case we missed location updates)
+  useEffect(() => {
+    if (poiOrchestrator.isRunning() && location && autoDiscovery) {
+      console.log(`[PROVIDER] Orchestrator just started, triggering initial discovery`);
+      poiOrchestrator.discoverPOIs();
+    }
+  }, [poiOrchestrator.isRunning(), location, autoDiscovery]);
   
   // Actions
   const start = useCallback(() => {

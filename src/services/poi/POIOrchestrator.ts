@@ -395,9 +395,25 @@ class POIOrchestrator {
     });
 
     try {
-      // Trigger discovery engine search
-      console.log(`[ORCHESTRATOR] Calling discoveryEngine.search()...`);
-      const pois = await discoveryEngine.search();
+      // NOTE: DiscoveryEngine.search() is async but returns immediately with
+      // current results (empty). The actual search executes via debouncer.
+      // We need to wait for the debouncer to fire and search to complete.
+      console.log(`[ORCHESTRATOR] Calling discoveryEngine.search() (triggers debouncer)...`);
+      
+      // Trigger search - this schedules debouncer but returns empty results immediately
+      discoveryEngine.search().catch(err => {
+        console.log(`[ORCHESTRATOR] search() error:`, err);
+      });
+      
+      // Since search() returns empty results immediately (debouncer), we need to
+      // wait for the debouncer to fire (300ms default) and search to complete
+      console.log(`[ORCHESTRATOR] Waiting for debouncer to fire (300ms + search time)...`);
+      await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms for debouncer + search
+      
+      // Now get results from DiscoveryEngine
+      const pois = discoveryEngine.getResults();
+      
+      console.log(`[ORCHESTRATOR] Results from DiscoveryEngine: ${pois.length} POIs`);
       
       const duration = Date.now() - startTime;
       this.stats.lastDiscoveryDuration = duration;

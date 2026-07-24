@@ -124,18 +124,40 @@ const MAP_HTML = `
 
     // Function to update POI markers
     function updatePOIMarkers(pois) {
+      console.log('[MAP] updatePOIMarkers called');
+      console.log('[MAP] Input pois:', pois);
+      console.log('[MAP] Input pois type:', typeof pois);
+      console.log('[MAP] Input pois length:', pois ? pois.length : 'undefined');
+      
       // Clear existing markers
       poiLayer.clearLayers();
+      console.log('[MAP] Cleared existing markers');
       
-      if (!pois || pois.length === 0) {
-        console.log('[MAP] No POIs to display');
+      if (!pois) {
+        console.log('[MAP] POIs is null/undefined, returning');
         return;
       }
       
-      console.log('[MAP] Adding ' + pois.length + ' POI markers');
+      if (!Array.isArray(pois)) {
+        console.log('[MAP] POIs is not an array, returning');
+        return;
+      }
       
-      pois.forEach(function(poi) {
-        if (poi.latitude && poi.longitude) {
+      if (pois.length === 0) {
+        console.log('[MAP] POIs array is empty, returning');
+        return;
+      }
+      
+      console.log('[MAP] Processing ' + pois.length + ' POIs');
+      
+      var validCount = 0;
+      var invalidCount = 0;
+      
+      pois.forEach(function(poi, index) {
+        console.log('[MAP] Processing POI', index, ':', JSON.stringify(poi));
+        
+        if (poi.latitude && poi.longitude && !isNaN(poi.latitude) && !isNaN(poi.longitude)) {
+          console.log('[MAP] POI', index, 'is valid, creating marker at', poi.latitude, poi.longitude);
           var marker = L.marker([poi.latitude, poi.longitude], {
             icon: createPOIIcon(poi.category)
           });
@@ -156,13 +178,21 @@ const MAP_HTML = `
           
           marker.bindPopup(popupContent);
           poiLayer.addLayer(marker);
+          validCount++;
+          console.log('[MAP] Marker', index, 'added successfully');
+        } else {
+          invalidCount++;
+          console.log('[MAP] POI', index, 'is invalid:', 'latitude=', poi.latitude, 'longitude=', poi.longitude);
         }
       });
+      
+      console.log('[MAP] Final: validCount=' + validCount + ', invalidCount=' + invalidCount);
+      console.log('[MAP] poiLayer has', poiLayer.getLayers().length, 'layers');
       
       // Send update to React Native
       window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({
         type: 'poiMarkersUpdated',
-        count: pois.length
+        count: validCount
       }));
     }
 
@@ -198,18 +228,33 @@ const MAP_HTML = `
     });
 
     // Message handler from React Native
-    document.addEventListener('message', function(e) {
-      var data = JSON.parse(e.data);
-      if (data.type === 'updateLocation') {
-        updateUserLocation(data.latitude, data.longitude);
-      } else if (data.type === 'centerOnUser') {
-        centerOnUser(data.latitude, data.longitude, data.animate || false);
-      } else if (data.type === 'setRegion') {
-        map.setView([data.latitude, data.longitude], data.zoom || 15, {animate: data.animate || false});
-      } else if (data.type === 'updatePOIs') {
-        updatePOIMarkers(data.pois);
+    // Using window.addEventListener for better React Native WebView compatibility
+    window.addEventListener('message', function(e) {
+      console.log('[WEBVIEW] Received message:', e.data);
+      try {
+        var data = JSON.parse(e.data);
+        if (data.type === 'updateLocation') {
+          console.log('[WEBVIEW] updateLocation:', data.latitude, data.longitude);
+          updateUserLocation(data.latitude, data.longitude);
+        } else if (data.type === 'centerOnUser') {
+          console.log('[WEBVIEW] centerOnUser:', data.latitude, data.longitude);
+          centerOnUser(data.latitude, data.longitude, data.animate || false);
+        } else if (data.type === 'setRegion') {
+          console.log('[WEBVIEW] setRegion:', data.latitude, data.longitude, data.zoom);
+          map.setView([data.latitude, data.longitude], data.zoom || 15, {animate: data.animate || false});
+        } else if (data.type === 'updatePOIs') {
+          console.log('[WEBVIEW] updatePOIs received, count:', data.pois ? data.pois.length : 0);
+          if (data.pois && data.pois.length > 0) {
+            console.log('[WEBVIEW] First POI:', JSON.stringify(data.pois[0]));
+          }
+          updatePOIMarkers(data.pois);
+        }
+      } catch (err) {
+        console.log('[WEBVIEW] Error parsing message:', err);
       }
     });
+    
+    console.log('[WEBVIEW] Message listener registered');
   </script>
 </body>
 </html>
@@ -304,21 +349,54 @@ export function OpenStreetMap({
 
   // Update POI markers when pois change
   useEffect(() => {
-    if (webViewRef.current && isMapReady) {
-      console.log('[OPENSTREETMAP] Sending POIs to map:', pois.length, 'POIs');
-      webViewRef.current.postMessage(JSON.stringify({
-        type: 'updatePOIs',
-        pois: pois.map(poi => ({
-          id: poi.id,
-          name: poi.name,
-          latitude: poi.latitude,
-          longitude: poi.longitude,
-          category: poi.category,
-          subcategory: poi.subcategory,
-          distance: poi.distance,
-        })),
-      }));
+    console.log('[OPENSTREETMAP] ============================================');
+    console.log('[OPENSTREETMAP] POIs changed');
+    console.log(`[OPENSTREETMAP] POIs count: ${pois.length}`);
+    console.log(`[OPENSTREETMAP] isMapReady: ${isMapReady}`);
+    console.log(`[OPENSTREETMAP] webViewRef exists: ${!!webViewRef.current}`);
+    
+    if (pois.length > 0) {
+      const sample = pois[0];
+      console.log(`[OPENSTREETMAP] Sample POI:`);
+      console.log(`[OPENSTREETMAP]   ID: ${sample.id}`);
+      console.log(`[OPENSTREETMAP]   Name: ${sample.name}`);
+      console.log(`[OPENSTREETMAP]   Latitude: ${sample.latitude}`);
+      console.log(`[OPENSTREETMAP]   Longitude: ${sample.longitude}`);
+      console.log(`[OPENSTREETMAP]   Category: ${sample.category}`);
+      console.log(`[OPENSTREETMAP]   Distance: ${sample.distance}`);
     }
+    
+    if (webViewRef.current && isMapReady) {
+      const poisData = pois.map(poi => ({
+        id: poi.id,
+        name: poi.name,
+        latitude: poi.latitude,
+        longitude: poi.longitude,
+        category: poi.category,
+        subcategory: poi.subcategory,
+        distance: poi.distance,
+      }));
+      
+      console.log('[OPENSTREETMAP] Sending updatePOIs message with', poisData.length, 'POIs');
+      console.log('[OPENSTREETMAP] First POI in message:', JSON.stringify(poisData[0] || 'none'));
+      
+      const message = JSON.stringify({
+        type: 'updatePOIs',
+        pois: poisData,
+      });
+      
+      console.log('[OPENSTREETMAP] Message length:', message.length, 'chars');
+      console.log('[OPENSTREETMAP] Calling postMessage...');
+      
+      webViewRef.current.postMessage(message);
+      
+      console.log('[OPENSTREETMAP] postMessage called successfully');
+    } else {
+      console.log('[OPENSTREETMAP] Skipping: webView not ready');
+      if (!webViewRef.current) console.log('[OPENSTREETMAP] Reason: webViewRef.current is null');
+      if (!isMapReady) console.log('[OPENSTREETMAP] Reason: isMapReady is false');
+    }
+    console.log('[OPENSTREETMAP] ============================================');
   }, [pois, isMapReady]);
 
   // Handle WebView load
